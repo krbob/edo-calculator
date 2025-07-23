@@ -1,5 +1,7 @@
 # edo-calculator
 
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/krbob/edo-calculator/ci.yml)
+
 This project was created using the [Ktor Project Generator](https://start.ktor.io).
 
 Here are some useful links to get you started:
