@@ -1,7 +1,7 @@
 
 [versions]
 kotlin-version = "2.2.0"
-ktor-version = "3.2.2"
+ktor-version = "3.2.3"
 logback-version = "1.5.18"
 
 [libraries]
