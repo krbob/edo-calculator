@@ -4,7 +4,7 @@ kotlin-version = "2.2.20"
 ktor-version = "3.3.0"
 logback-version = "1.5.18"
 kotlinx-coroutines-version = "1.10.2"
-junit-version = "5.13.4"
+junit-version = "5.14.0"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor-version" }
