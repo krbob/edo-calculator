@@ -1,4 +1,4 @@
-package net.bobinski.edocalculator.client
+package net.bobinski.edocalculator.core.serialization
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind
@@ -27,7 +27,7 @@ private object BigDecimalSerializer : KSerializer<BigDecimal> {
     }
 }
 
-val AppJson = Json {
+internal val AppJson = Json {
     serializersModule = module
     isLenient = true
     prettyPrint = true

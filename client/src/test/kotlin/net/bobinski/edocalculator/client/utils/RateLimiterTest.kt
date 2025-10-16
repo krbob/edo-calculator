@@ -1,4 +1,4 @@
-package net.bobinski.edocalculator.client
+package net.bobinski.edocalculator.client.utils
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

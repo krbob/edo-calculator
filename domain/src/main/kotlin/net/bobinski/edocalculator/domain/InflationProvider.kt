@@ -1,0 +1,3 @@
+package net.bobinski.edocalculator.domain
+
+interface InflationProvider
