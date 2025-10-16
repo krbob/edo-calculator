@@ -1,10 +1,10 @@
-
 [versions]
 kotlin-version = "2.2.20"
 ktor-version = "3.3.1"
 logback-version = "1.5.19"
 kotlinx-coroutines-version = "1.10.2"
 junit-version = "6.0.0"
+koin-version = "4.1.1"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor-version" }
@@ -25,6 +25,9 @@ junit-bom = { module = "org.junit:junit-bom", version.ref = "junit-version" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 mockk = { module = "io.mockk:mockk", version = "1.14.6" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin-version" }
+koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin-version" }
+koin-logger-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin-version" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin-version" }

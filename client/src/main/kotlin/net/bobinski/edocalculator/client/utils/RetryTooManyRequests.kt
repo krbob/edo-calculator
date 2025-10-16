@@ -1,4 +1,4 @@
-package net.bobinski.edocalculator.client
+package net.bobinski.edocalculator.client.utils
 
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.http.HttpStatusCode

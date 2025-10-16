@@ -13,6 +13,10 @@ repositories {
 }
 
 dependencies {
+    implementation(project("::core"))
+    implementation(project("::client"))
+    implementation(project("::domain"))
+    implementation(project("::inflation-gus"))
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.core)
     implementation(libs.ktor.serialization.kotlinx.json)
@@ -20,5 +24,7 @@ dependencies {
     implementation(libs.ktor.server.netty)
     implementation(libs.logback.classic)
     implementation(libs.ktor.server.config.yaml)
+    implementation(libs.koin.ktor)
+    implementation(libs.koin.logger.slf4j)
     testImplementation(libs.ktor.server.test.host)
 }
