@@ -2,13 +2,23 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  APP_PORT: 8080
+  TEST_URL: "http://localhost:8080/"
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
@@ -33,5 +43,91 @@ jobs:
       - name: Make Gradle wrapper executable
         run: chmod +x ./gradlew
 
-      - name: Build
-        run: ./gradlew build --no-daemon
+      - name: Run unit tests
+        run: ./gradlew test --no-daemon
+
+      - name: Derive local image tag
+        id: meta
+        run: |
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "image=ktor-app:test-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build local image
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: ./gradlew jibDockerBuild --no-daemon --image="$IMAGE"
+
+      - name: Run container
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+          APP_PORT: ${{ env.APP_PORT }}
+        run: |
+          docker rm -f app || true
+          docker run -d --name app -p "${APP_PORT}:${APP_PORT}" "$IMAGE"
+
+      - name: Wait until endpoint returns 200
+        env:
+          TEST_URL: ${{ env.TEST_URL }}
+        run: |
+          echo "⏳ Waiting for $TEST_URL..."
+          for i in $(seq 1 60); do
+            if curl -fsS "$TEST_URL" > /dev/null; then
+              echo "✅ Endpoint responded with 200"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "❌ Endpoint did not return 200 within 60s"
+          docker logs app || true
+          exit 1
+
+      - name: Clean up
+        if: always()
+        run: docker rm -f app || true
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Publish image
+        if: github.ref_name == 'main'
+        env:
+          JIB_TO_AUTH_USERNAME: ${{ github.actor }}
+          JIB_TO_AUTH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          IMAGE="ghcr.io/${OWNER}/${REPO}"
+          SHA_TAG="sha-$(git rev-parse --short HEAD)"
+
+          ./gradlew jib --no-daemon -Djib.to.image="${IMAGE}:${SHA_TAG}"
+          ./gradlew jib --no-daemon -Djib.to.image="${IMAGE}:latest"
