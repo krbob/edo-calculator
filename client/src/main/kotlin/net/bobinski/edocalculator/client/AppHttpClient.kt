@@ -25,6 +25,7 @@ internal class AppHttpClient {
             }
             install(Logging) {
                 level = LogLevel.INFO
+                format = LoggingFormat.OkHttp
             }
         }
     }
