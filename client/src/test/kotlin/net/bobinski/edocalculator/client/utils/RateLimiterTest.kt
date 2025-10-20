@@ -27,7 +27,7 @@ class RateLimiterTest {
         val startedAt = mutableListOf<Long>()
 
         val jobs = (1..40).map {
-            async { limiter.run { startedAt += testScheduler.currentTime } }
+            async { limiter.limit { startedAt += testScheduler.currentTime } }
         }
 
         advanceUntilIdle()
@@ -63,7 +63,7 @@ class RateLimiterTest {
             concurrent.decrementAndGet()
         }
 
-        val jobs = (1..8).map { async { limiter.run { work() } } }
+        val jobs = (1..8).map { async { limiter.limit { work() } } }
 
         advanceTimeBy(1000)
         advanceUntilIdle()
@@ -85,7 +85,7 @@ class RateLimiterTest {
         val starts = MutableList(10) { -1L }
 
         repeat(starts.size) { i ->
-            val job = async { limiter.run { starts[i] = testScheduler.currentTime } }
+            val job = async { limiter.limit { starts[i] = testScheduler.currentTime } }
             advanceTimeBy(intervalMs.toLong())
             job.await()
         }
@@ -108,7 +108,7 @@ class RateLimiterTest {
         )
 
         val done = Channel<Unit>(Channel.UNLIMITED)
-        repeat(n) { launch { limiter.run { done.trySend(Unit) } } }
+        repeat(n) { launch { limiter.limit { done.trySend(Unit) } } }
 
         val upperBoundMs = (ceil(n / rps.toDouble()) * 1000).toLong()
 

@@ -8,6 +8,7 @@ repositories {
 
 dependencies {
     implementation(libs.koin.core)
+    implementation(libs.kotlinx.datetime)
 }
 
 tasks.test {
