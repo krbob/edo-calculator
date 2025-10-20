@@ -1,77 +1,124 @@
 package net.bobinski.edocalculator.client.utils
 
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.ceil
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class RateLimiterTest {
-    private val window: Duration = 100.milliseconds
 
     @Test
-    fun `allows up to limit within window`() = runTest {
-        val limiter = RateLimiter(limit = 3, window = window)
-        var counter = 0
+    fun `never exceeds rps in any 1s window`() = runTest {
+        val rps = 5
+        val limiter = RateLimiter(
+            requestsPerSecond = rps,
+            maxConcurrency = 64,
+            now = { testScheduler.currentTime.milliseconds }
+        )
 
-        repeat(3) {
-            launch { limiter.limit { counter++ } }
+        val startedAt = mutableListOf<Long>()
+
+        val jobs = (1..40).map {
+            async { limiter.run { startedAt += testScheduler.currentTime } }
         }
-        delay(20.milliseconds)
 
-        assertEquals(3, counter)
+        advanceUntilIdle()
+        jobs.awaitAll()
+
+        val stamps = startedAt.sorted()
+        val horizon = (stamps.lastOrNull() ?: 0L) + 1000L
+
+        fun countInWindow(startMs: Long): Int =
+            stamps.count { it in startMs until (startMs + 1000) }
+
+        for (t in 0..horizon step 50) {
+            val c = countInWindow(t)
+            assertTrue(c <= rps, "window @$t ms has $c > $rps starts")
+        }
     }
 
     @Test
-    fun `blocks when limit exceeded`() = runTest {
-        val limiter = RateLimiter(limit = 2, window = window)
-        val results = mutableListOf<Int>()
+    fun `caps simultaneous executions to maxConcurrency`() = runTest {
+        val limiter = RateLimiter(
+            requestsPerSecond = 10_000,
+            maxConcurrency = 3,
+            now = { testScheduler.currentTime.milliseconds }
+        )
 
-        val t0 = System.currentTimeMillis()
-        (1..3).map {
-            async { limiter.limit { results.add(it) } }
-        }.awaitAll()
-        val t1 = System.currentTimeMillis()
+        val concurrent = AtomicInteger(0)
+        var peak = 0
 
-        assertEquals(listOf(1, 2, 3), results)
-        assertTrue(t1 - t0 >= window.inWholeMilliseconds)
+        suspend fun work() {
+            val now = concurrent.incrementAndGet()
+            if (now > peak) peak = now
+            delay(1000)
+            concurrent.decrementAndGet()
+        }
+
+        val jobs = (1..8).map { async { limiter.run { work() } } }
+
+        advanceTimeBy(1000)
+        advanceUntilIdle()
+        jobs.awaitAll()
+
+        assertEquals(3, peak, "concurrency exceeded gate limit")
     }
 
     @Test
-    fun `resets window correctly`() = runTest {
-        val limiter = RateLimiter(limit = 1, window = window)
-        var counter = 0
+    fun `calls arriving at rps are not overthrottled`() = runTest {
+        val rps = 5
+        val intervalMs = 1000 / rps
+        val limiter = RateLimiter(
+            requestsPerSecond = rps,
+            maxConcurrency = 8,
+            now = { testScheduler.currentTime.milliseconds }
+        )
 
-        limiter.limit { counter++ }
-        val t0 = System.currentTimeMillis()
-        async { limiter.limit { counter++ } }.await()
-        val t1 = System.currentTimeMillis()
+        val starts = MutableList(10) { -1L }
 
-        assertEquals(2, counter)
-        assertTrue(t1 - t0 >= window.inWholeMilliseconds)
+        repeat(starts.size) { i ->
+            val job = async { limiter.run { starts[i] = testScheduler.currentTime } }
+            advanceTimeBy(intervalMs.toLong())
+            job.await()
+        }
+
+        starts.forEachIndexed { i, t ->
+            val arrival = i * intervalMs
+            assertTrue(t <= arrival.toLong(), "start $i at $t ms later than arrival $arrival ms")
+        }
+        assertEquals(starts.size * intervalMs.toLong(), testScheduler.currentTime)
     }
 
     @Test
-    fun `events are rate limited over multiple windows`() = runTest {
-        val limiter = RateLimiter(limit = 2, window = window)
-        val eventTimes = mutableListOf<Long>()
+    fun `eventual progress within rps bound`() = runTest {
+        val rps = 5
+        val n = 25
+        val limiter = RateLimiter(
+            requestsPerSecond = rps,
+            maxConcurrency = 5,
+            now = { testScheduler.currentTime.milliseconds }
+        )
 
-        val start = System.currentTimeMillis()
-        (1..5).map {
-            async { limiter.limit { eventTimes.add(System.currentTimeMillis() - start) } }
-        }.awaitAll()
+        val done = Channel<Unit>(Channel.UNLIMITED)
+        repeat(n) { launch { limiter.run { done.trySend(Unit) } } }
 
-        assertTrue(eventTimes[0] < 20)
-        assertTrue(eventTimes[1] < 20)
+        val upperBoundMs = (ceil(n / rps.toDouble()) * 1000).toLong()
 
-        assertTrue(eventTimes[2] in 100..140)
-        assertTrue(eventTimes[3] in 100..140)
+        advanceTimeBy(upperBoundMs)
+        advanceUntilIdle()
 
-        assertTrue(eventTimes[4] in 200..260)
+        var count = 0
+        while (!done.isEmpty) {
+            done.tryReceive().getOrNull()?.let { count++ }
+        }
+        assertEquals(n, count, "not all tasks finished within rps-derived bound")
     }
 }

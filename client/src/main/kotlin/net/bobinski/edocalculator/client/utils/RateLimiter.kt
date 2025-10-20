@@ -2,39 +2,43 @@ package net.bobinski.edocalculator.client.utils
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withLock
-import kotlin.time.Clock
+import kotlinx.coroutines.sync.withPermit
 import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
-@OptIn(ExperimentalTime::class)
 class RateLimiter(
-    private val limit: Int,
-    private val window: Duration
+    requestsPerSecond: Int,
+    maxConcurrency: Int = 1,
+    private val now: () -> Duration = defaultNow()
 ) {
+    init {
+        require(requestsPerSecond > 0)
+        require(maxConcurrency > 0)
+    }
+
+    private val gate = Semaphore(maxConcurrency)
     private val mutex = Mutex()
-    private val timestamps = ArrayDeque<Instant>()
+    private val interval: Duration = 1.seconds / requestsPerSecond
+    private var nextAllowedOffset: Duration = Duration.ZERO
 
-    suspend fun <T> limit(block: suspend () -> T): T {
-        while (true) {
-            var waitTime = Duration.ZERO
+    suspend fun <T> run(block: suspend () -> T): T = gate.withPermit {
+        val waitFor = mutex.withLock {
+            val t = now()
+            val wait = (nextAllowedOffset - t).coerceAtLeast(Duration.ZERO)
+            nextAllowedOffset = maxOf(nextAllowedOffset, t) + interval
+            wait
+        }
+        if (waitFor.isPositive()) delay(waitFor)
+        block()
+    }
 
-            mutex.withLock {
-                val now = Clock.System.now()
-                val windowStart = now - window
-                while (timestamps.isNotEmpty() && timestamps.first() < windowStart) {
-                    timestamps.removeFirst()
-                }
-                if (timestamps.size >= limit) {
-                    waitTime = timestamps.first() + window - now
-                } else {
-                    timestamps.addLast(now)
-                    return block()
-                }
-            }
-
-            delay(waitTime)
+    companion object {
+        private fun defaultNow(): () -> Duration {
+            val origin = TimeSource.Monotonic.markNow()
+            return { origin.elapsedNow() }
         }
     }
 }
