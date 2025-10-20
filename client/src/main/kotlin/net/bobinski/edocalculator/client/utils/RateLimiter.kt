@@ -24,7 +24,7 @@ class RateLimiter(
     private val interval: Duration = 1.seconds / requestsPerSecond
     private var nextAllowedOffset: Duration = Duration.ZERO
 
-    suspend fun <T> run(block: suspend () -> T): T = gate.withPermit {
+    suspend fun <T> limit(block: suspend () -> T): T = gate.withPermit {
         val waitFor = mutex.withLock {
             val t = now()
             val wait = (nextAllowedOffset - t).coerceAtLeast(Duration.ZERO)

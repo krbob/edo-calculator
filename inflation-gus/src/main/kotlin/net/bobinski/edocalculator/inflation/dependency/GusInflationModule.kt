@@ -2,10 +2,17 @@ package net.bobinski.edocalculator.inflation.dependency
 
 import net.bobinski.edocalculator.domain.InflationProvider
 import net.bobinski.edocalculator.inflation.GusInflationProvider
-import org.koin.core.module.dsl.factoryOf
+import net.bobinski.edocalculator.inflation.api.CachingGusApi
+import net.bobinski.edocalculator.inflation.api.GusApi
+import net.bobinski.edocalculator.inflation.api.GusApiImpl
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import kotlin.time.ExperimentalTime
 
+@OptIn(ExperimentalTime::class)
 val GusInflationModule = module {
-    factoryOf(::GusInflationProvider) bind InflationProvider::class
+    single<GusApi>(named("raw")) { GusApiImpl(client = get()) }
+    single<GusApi> { CachingGusApi(delegate = get(named("raw"))) }
+    single { GusInflationProvider(api = get()) } bind InflationProvider::class
 }
