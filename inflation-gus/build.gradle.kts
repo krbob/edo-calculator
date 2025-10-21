@@ -9,6 +9,7 @@ repositories {
 
 dependencies {
     implementation(project("::client"))
+    implementation(project("::core"))
     implementation(project("::domain"))
     implementation(libs.koin.core)
     implementation(libs.ktor.client.core)

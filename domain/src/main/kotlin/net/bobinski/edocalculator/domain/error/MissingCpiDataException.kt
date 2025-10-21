@@ -15,6 +15,11 @@ class MissingCpiDataException(message: String) : RuntimeException(message) {
                 "Missing CPI period data for $year: ${periods.joinToString(",")}"
             )
 
+        fun forInvalidPeriod(year: Int, periodId: Int): MissingCpiDataException =
+            MissingCpiDataException(
+                "Cannot determine calendar month for period $periodId in $year"
+            )
+
         fun forMonth(month: YearMonth): MissingCpiDataException =
             MissingCpiDataException("No CPI data for $month")
     }
