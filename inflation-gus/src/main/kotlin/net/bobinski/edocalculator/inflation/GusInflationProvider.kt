@@ -33,20 +33,25 @@ internal class GusInflationProvider internal constructor(private val api: GusApi
             .awaitAll()
             .toMap()
 
-        val monthlyMultipliers: Map<YearMonth, BigDecimal> = byYear
-            .flatMap { (year, points) ->
-                points.mapIndexed { idx, p ->
-                    val month = idx + 1
-                    val ym = YearMonth(year, month)
-                    val multiplier = p.value.divide(BigDecimal(100), mc)
-                    ym to multiplier
-                }
-            }
-            .toMap()
+        val monthlyMultipliers = byYear.toMonthlyMultipliers()
 
-        months.fold(BigDecimal.ONE) { acc, ym ->
-            val m = monthlyMultipliers[ym] ?: throw MissingCpiDataException("No CPI data for $ym")
-            acc.multiply(m, mc)
+        return@coroutineScope months.fold(BigDecimal.ONE) { acc, ym ->
+            val multiplier = monthlyMultipliers[ym]
+                ?: throw MissingCpiDataException.forMonth(ym)
+            acc.multiply(multiplier, mc)
         }.setScale(6, RoundingMode.HALF_EVEN)
     }
+
+    private fun Map<Int, List<GusIndicatorPoint>>.toMonthlyMultipliers(): Map<YearMonth, BigDecimal> =
+        entries.asSequence()
+            .flatMap { (_, points) ->
+                points
+                    .sortedBy { it.periodId }
+                    .mapIndexed { index, point ->
+                        val month = YearMonth(point.year, index + 1)
+                        val multiplier = point.value.divide(BigDecimal(100), mc)
+                        month to multiplier
+                    }
+            }
+            .toMap()
 }

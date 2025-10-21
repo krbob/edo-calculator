@@ -55,32 +55,45 @@ internal class GusApiImpl(
             .distinctBy { it.periodId }
             .sortedBy { it.periodId }
 
-        val gaps: List<Int> = normalized
-            .map { it.periodId }
-            .zipWithNext()
-            .flatMap { (a, b) ->
-                val diff = b - a
-                if (diff > 1) ((a + 1) until b).toList() else emptyList()
-            }
-
-        if (year != currentYear()) {
-            if (normalized.size != 12) {
-                throw MissingCpiDataException("Missing CPI data for $year: expected 12 items, got ${normalized.size}")
-            }
-        }
-        if (gaps.isNotEmpty()) {
-            throw MissingCpiDataException("Missing CPI period data for $year: ${gaps.joinToString(",")}")
-        }
+        normalized.ensureCompleteness(year)
+        normalized.ensureNoGaps(year)
 
         return normalized
     }
 
     private fun currentYear(): Int = clock.now().toLocalDateTime(TimeZone.UTC).year
 
+    private fun List<GusIndicatorPoint>.ensureCompleteness(year: Int) {
+        if (year == currentYear()) return
+        if (size != EXPECTED_MONTHS) {
+            throw MissingCpiDataException.forIncompleteYear(
+                year = year,
+                expected = EXPECTED_MONTHS,
+                actual = size
+            )
+        }
+    }
+
+    private fun List<GusIndicatorPoint>.ensureNoGaps(year: Int) {
+        val gaps = asSequence()
+            .map { it.periodId }
+            .zipWithNext()
+            .flatMap { (a, b) ->
+                val diff = b - a
+                if (diff > 1) ((a + 1) until b) else emptyList()
+            }
+            .toList()
+
+        if (gaps.isNotEmpty()) {
+            throw MissingCpiDataException.forMissingPeriods(year, gaps)
+        }
+    }
+
     companion object {
         private const val BASE_URL = "https://api-sdp.stat.gov.pl"
         private const val INDICATOR_ID: Int = 639
         private const val LANG = "pl"
         private const val MIN_SUPPORTED_YEAR = 2010
+        private const val EXPECTED_MONTHS = 12
     }
 }
