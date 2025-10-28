@@ -30,46 +30,39 @@ internal class CachingGusApi(
     override suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint> {
         val lock = locks.computeIfAbsent(year) { Mutex() }
 
-        cache[year]?.let { e ->
-            if (e.complete) return e.data
-            if (!isExpired(year, e)) return e.data
-        }
+        cache[year]?.takeIf { it.isFresh(year) }?.let { return it.data }
 
         return lock.withLock {
-            cache[year]?.let { e ->
-                if (e.complete) return@withLock e.data
-                if (!isExpired(year, e)) return@withLock e.data
-            }
+            cache[year]?.takeIf { it.isFresh(year) }?.let { return@withLock it.data }
 
-            val fresh = runCatching { delegate.fetchYearInflation(year) }
-                .onFailure { ex ->
+            val refreshed = runCatching { delegate.fetchYearInflation(year) }
+                .onFailure { error ->
                     cache[year]?.let { return@withLock it.data }
-                    throw ex
+                    throw error
                 }
                 .getOrThrow()
 
-            cache[year] = Entry(
-                data = fresh,
+            val entry = Entry(
+                data = refreshed,
                 storedAt = clock.now(),
-                complete = isCompleteYear(year, fresh)
+                complete = refreshed.isComplete(year)
             )
-            fresh
+            cache[year] = entry
+            entry.data
         }
     }
 
     private fun nowYear(): Int = clock.now().toLocalDateTime(TimeZone.UTC).year
 
-    private fun isCompleteYear(year: Int, points: List<GusIndicatorPoint>): Boolean {
-        val months = points
-            .filter { it.year == year }
+    private fun List<GusIndicatorPoint>.isComplete(year: Int): Boolean =
+        filter { it.year == year }
             .map { it.periodId }
             .toSet()
-        return months.size == 12
-    }
+            .size == 12
 
-    private fun isExpired(year: Int, e: Entry): Boolean {
-        if (e.complete && year < nowYear()) return false
-        val age = clock.now() - e.storedAt
-        return age >= ttl
+    private fun Entry.isFresh(year: Int): Boolean {
+        if (complete && year < nowYear()) return true
+        val age = clock.now() - storedAt
+        return age < ttl
     }
 }

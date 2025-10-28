@@ -7,11 +7,22 @@ import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonBuilder
 import kotlinx.serialization.modules.SerializersModule
 import java.math.BigDecimal
 
-private val module = SerializersModule {
-    contextual(BigDecimal::class, BigDecimalSerializer)
+internal object AppJsonFactory {
+    val serializersModule: SerializersModule = SerializersModule {
+        contextual(BigDecimal::class, BigDecimalSerializer)
+    }
+
+    fun create(configure: JsonBuilder.() -> Unit = {}): Json = Json {
+        serializersModule = AppJsonFactory.serializersModule
+        isLenient = true
+        prettyPrint = true
+        ignoreUnknownKeys = true
+        configure()
+    }
 }
 
 private object BigDecimalSerializer : KSerializer<BigDecimal> {
@@ -25,11 +36,4 @@ private object BigDecimalSerializer : KSerializer<BigDecimal> {
     override fun deserialize(decoder: Decoder): BigDecimal {
         return BigDecimal(decoder.decodeString())
     }
-}
-
-internal val AppJson = Json {
-    serializersModule = module
-    isLenient = true
-    prettyPrint = true
-    ignoreUnknownKeys = true
 }

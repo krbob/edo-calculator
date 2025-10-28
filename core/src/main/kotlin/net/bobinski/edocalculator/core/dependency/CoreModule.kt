@@ -1,9 +1,10 @@
 package net.bobinski.edocalculator.core.dependency
 
 import kotlinx.serialization.json.Json
-import net.bobinski.edocalculator.core.serialization.AppJson
+import net.bobinski.edocalculator.core.serialization.AppJsonFactory
 import org.koin.dsl.module
 
 val CoreModule = module {
-    single<Json> { AppJson }
+    single<Json> { AppJsonFactory.create() }
 }
+

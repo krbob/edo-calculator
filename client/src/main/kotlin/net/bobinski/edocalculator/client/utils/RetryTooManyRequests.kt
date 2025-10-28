@@ -12,6 +12,11 @@ class RetryTooManyRequests(
     private val baseDelay: Duration = 100.milliseconds
 ) {
 
+    init {
+        require(times > 0) { "times must be greater than zero" }
+        require(!baseDelay.isNegative()) { "baseDelay cannot be negative" }
+    }
+
     suspend fun <T> execute(block: suspend () -> T): T {
         var last: Throwable? = null
 
@@ -19,8 +24,8 @@ class RetryTooManyRequests(
             try {
                 return block()
             } catch (e: ClientRequestException) {
-                if (e.response.status in setOf(HttpStatusCode.TooManyRequests, HttpStatusCode.ServiceUnavailable)) {
-                    delay(baseDelay * 2.0.pow(attempt))
+                if (e.shouldRetry()) {
+                    delay(calculateDelay(attempt))
                     last = e
                 } else {
                     throw e
@@ -29,5 +34,20 @@ class RetryTooManyRequests(
         }
 
         throw last ?: IllegalStateException("Retry failed after $times attempts")
+    }
+
+    private fun ClientRequestException.shouldRetry(): Boolean {
+        return response.status in RETRIABLE_STATUS_CODES
+    }
+
+    private fun calculateDelay(attempt: Int): Duration {
+        return baseDelay * 2.0.pow(attempt)
+    }
+
+    private companion object {
+        private val RETRIABLE_STATUS_CODES = setOf(
+            HttpStatusCode.TooManyRequests,
+            HttpStatusCode.ServiceUnavailable
+        )
     }
 }
