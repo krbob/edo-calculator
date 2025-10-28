@@ -15,8 +15,8 @@ class RateLimiter(
     private val now: () -> Duration = defaultNow()
 ) {
     init {
-        require(requestsPerSecond > 0)
-        require(maxConcurrency > 0)
+        require(requestsPerSecond > 0) { "requestsPerSecond must be greater than zero" }
+        require(maxConcurrency > 0) { "maxConcurrency must be greater than zero" }
     }
 
     private val gate = Semaphore(maxConcurrency)
@@ -25,14 +25,16 @@ class RateLimiter(
     private var nextAllowedOffset: Duration = Duration.ZERO
 
     suspend fun <T> limit(block: suspend () -> T): T = gate.withPermit {
-        val waitFor = mutex.withLock {
-            val t = now()
-            val wait = (nextAllowedOffset - t).coerceAtLeast(Duration.ZERO)
-            nextAllowedOffset = maxOf(nextAllowedOffset, t) + interval
-            wait
-        }
+        val waitFor = reserveSlot()
         if (waitFor.isPositive()) delay(waitFor)
         block()
+    }
+
+    private suspend fun reserveSlot(): Duration = mutex.withLock {
+        val currentOffset = now()
+        val waitDuration = (nextAllowedOffset - currentOffset).coerceAtLeast(Duration.ZERO)
+        nextAllowedOffset = maxOf(nextAllowedOffset, currentOffset) + interval
+        waitDuration
     }
 
     companion object {
