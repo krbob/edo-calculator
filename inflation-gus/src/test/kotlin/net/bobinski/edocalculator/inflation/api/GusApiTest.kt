@@ -19,9 +19,7 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import java.math.BigDecimal
 import kotlin.test.assertFailsWith
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 class GusApiTest : KoinTest {
@@ -45,7 +43,7 @@ class GusApiTest : KoinTest {
             assertEquals("pl", req.url.parameters["lang"])
             respond(payloadForYear(2012), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(2012))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2012)))
         val points = api.fetchYearInflation(2012)
 
         assertEquals(2, points.size)
@@ -65,7 +63,7 @@ class GusApiTest : KoinTest {
                 headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(2015))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015)))
         val points = api.fetchYearInflation(2015)
 
         assertEquals(2, points.size)
@@ -80,7 +78,7 @@ class GusApiTest : KoinTest {
                 headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(2025))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)))
 
         assertFailsWith<MissingCpiDataException> {
             api.fetchYearInflation(2015)
@@ -95,7 +93,7 @@ class GusApiTest : KoinTest {
                 headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(2025))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)))
 
         val points = api.fetchYearInflation(2015)
 
@@ -116,7 +114,7 @@ class GusApiTest : KoinTest {
         val client = http {
             respond(dupPayload, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(year))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
         val points = api.fetchYearInflation(year)
 
         assertEquals(listOf(247, 248), points.map { it.periodId })
@@ -136,7 +134,7 @@ class GusApiTest : KoinTest {
         val client = http {
             respond(payloadWithGap, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(2025))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)))
 
         assertFailsWith<MissingCpiDataException> {
             api.fetchYearInflation(year)
@@ -156,7 +154,7 @@ class GusApiTest : KoinTest {
         val client = http {
             respond(payloadWithGap, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
-        val api = GusApiImpl(client = client, clock = FixedClock(year))
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
 
         assertFailsWith<MissingCpiDataException> {
             api.fetchYearInflation(year)
@@ -165,14 +163,12 @@ class GusApiTest : KoinTest {
 
     @Test
     fun `year below 2010 throws IllegalArgumentException`() = runTest {
-        val api = GusApiImpl(client = http { error("should not be called") }, clock = FixedClock(2025))
+        val api = GusApiImpl(
+            client = http { error("should not be called") },
+            currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025))
+        )
         assertFailsWith<IllegalArgumentException> { api.fetchYearInflation(2009) }
     }
-}
-
-@OptIn(ExperimentalTime::class)
-class FixedClock(private val year: Int) : Clock {
-    override fun now(): Instant = Instant.parse("${year}-06-15T00:00:00Z")
 }
 
 private fun KoinTest.http(

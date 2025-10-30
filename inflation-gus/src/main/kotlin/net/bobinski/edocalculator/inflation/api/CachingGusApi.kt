@@ -2,10 +2,8 @@ package net.bobinski.edocalculator.inflation.api
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import java.util.concurrent.ConcurrentHashMap
-import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.ExperimentalTime
@@ -14,7 +12,7 @@ import kotlin.time.Instant
 @OptIn(ExperimentalTime::class)
 internal class CachingGusApi(
     private val delegate: GusApi,
-    private val clock: Clock = Clock.System,
+    private val currentTimeProvider: CurrentTimeProvider,
     private val ttl: Duration = 1.hours
 ) : GusApi {
 
@@ -44,15 +42,13 @@ internal class CachingGusApi(
 
             val entry = Entry(
                 data = refreshed,
-                storedAt = clock.now(),
+                storedAt = currentTimeProvider.instant(),
                 complete = refreshed.isComplete(year)
             )
             cache[year] = entry
             entry.data
         }
     }
-
-    private fun nowYear(): Int = clock.now().toLocalDateTime(TimeZone.UTC).year
 
     private fun List<GusIndicatorPoint>.isComplete(year: Int): Boolean =
         filter { it.year == year }
@@ -61,8 +57,8 @@ internal class CachingGusApi(
             .size == 12
 
     private fun Entry.isFresh(year: Int): Boolean {
-        if (complete && year < nowYear()) return true
-        val age = clock.now() - storedAt
+        if (complete && year < currentTimeProvider.yearMonth().year) return true
+        val age = currentTimeProvider.instant() - storedAt
         return age < ttl
     }
 }

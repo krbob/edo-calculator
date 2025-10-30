@@ -5,25 +5,21 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import net.bobinski.edocalculator.client.utils.RateLimiter
 import net.bobinski.edocalculator.client.utils.RetryTooManyRequests
+import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
-import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.ExperimentalTime
 
 internal interface GusApi {
     suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint>
 }
 
-@OptIn(ExperimentalTime::class)
 internal class GusApiImpl(
     private val client: HttpClient,
     private val limiter: RateLimiter = RateLimiter(requestsPerSecond = 5, maxConcurrency = 5),
     private val retry: RetryTooManyRequests = RetryTooManyRequests(times = 3, baseDelay = 100.milliseconds),
-    private val clock: Clock = Clock.System
+    private val currentTimeProvider: CurrentTimeProvider
 ) : GusApi {
 
     override suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint> {
@@ -61,7 +57,7 @@ internal class GusApiImpl(
         return normalized
     }
 
-    private fun currentYear(): Int = clock.now().toLocalDateTime(TimeZone.UTC).year
+    private fun currentYear(): Int = currentTimeProvider.yearMonth().year
 
     private fun List<GusIndicatorPoint>.ensureCompleteness(year: Int) {
         if (year == currentYear()) return
