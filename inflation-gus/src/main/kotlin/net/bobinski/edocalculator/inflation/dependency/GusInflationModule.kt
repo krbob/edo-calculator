@@ -12,7 +12,7 @@ import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
 val GusInflationModule = module {
-    single<GusApi>(named("raw")) { GusApiImpl(client = get()) }
-    single<GusApi> { CachingGusApi(delegate = get(named("raw"))) }
+    single<GusApi>(named("raw")) { GusApiImpl(client = get(), currentTimeProvider = get()) }
+    single<GusApi> { CachingGusApi(delegate = get(named("raw")), currentTimeProvider = get()) }
     single { GusInflationProvider(api = get()) } bind InflationProvider::class
 }

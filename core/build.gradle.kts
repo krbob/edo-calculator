@@ -9,6 +9,7 @@ repositories {
 dependencies {
     implementation(libs.koin.core)
     implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kotlinx.datetime)
 }
 
 tasks.test {
