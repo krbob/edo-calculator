@@ -7,6 +7,7 @@ repositories {
 }
 
 dependencies {
+    implementation(project("::core"))
     implementation(libs.koin.core)
     implementation(libs.kotlinx.datetime)
 }
