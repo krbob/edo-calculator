@@ -9,6 +9,7 @@ import net.bobinski.edocalculator.domain.InflationProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
 
 class CalculateCumulativeInflationUseCaseTest {
@@ -58,6 +59,34 @@ class CalculateCumulativeInflationUseCaseTest {
         coVerifySequence {
             inflationProvider.getInflationMultiplier(start, current)
             inflationProvider.getInflationMultiplier(start, fallback)
+        }
+    }
+
+    @Test
+    fun `returns multiplier for explicit end when date range valid`() = runTest {
+        val start = YearMonth(2022, 4)
+        val endExclusive = YearMonth(2023, 7)
+        val multiplier = BigDecimal("1.120")
+
+        coEvery { inflationProvider.getInflationMultiplier(start, endExclusive) } returns multiplier
+
+        val result = useCase(start, endExclusive)
+
+        assertEquals(start, result.from)
+        assertEquals(endExclusive, result.untilExclusive)
+        assertEquals(multiplier, result.multiplier)
+        coVerify(exactly = 1) { inflationProvider.getInflationMultiplier(start, endExclusive) }
+        verify(exactly = 0) { currentTimeProvider.yearMonth() }
+    }
+
+    @Test
+    fun `throws when explicit end is not after start`() {
+        val start = YearMonth(2024, 5)
+
+        assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(start, start)
+            }
         }
     }
 }

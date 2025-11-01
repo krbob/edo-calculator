@@ -35,7 +35,7 @@ class CumulativeInflationRouteTest {
         testApplication {
             configureApp(useCase)
 
-            val response = client.get("/inflation/cumulative")
+            val response = client.get("/inflation/since")
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
@@ -55,7 +55,7 @@ class CumulativeInflationRouteTest {
         testApplication {
             configureApp(useCase)
 
-            val response = client.get("/inflation/cumulative") {
+            val response = client.get("/inflation/since") {
                 parameter("year", "2024")
                 parameter("month", "13")
             }
@@ -87,7 +87,7 @@ class CumulativeInflationRouteTest {
 
             coEvery { useCase.invoke(start) } returns result
 
-            val response = client.get("/inflation/cumulative") {
+            val response = client.get("/inflation/since") {
                 parameter("year", start.year.toString())
                 parameter("month", "5")
             }
@@ -112,7 +112,7 @@ class CumulativeInflationRouteTest {
 
             coEvery { useCase.invoke(any()) } throws IllegalArgumentException("Start date in the future")
 
-            val response = client.get("/inflation/cumulative") {
+            val response = client.get("/inflation/since") {
                 parameter("year", "2024")
                 parameter("month", "6")
             }
@@ -133,7 +133,7 @@ class CumulativeInflationRouteTest {
 
             coEvery { useCase.invoke(any()) } throws MissingCpiDataException("No CPI data")
 
-            val response = client.get("/inflation/cumulative") {
+            val response = client.get("/inflation/since") {
                 parameter("year", "2024")
                 parameter("month", "6")
             }
@@ -154,9 +154,159 @@ class CumulativeInflationRouteTest {
 
             coEvery { useCase.invoke(any()) } throws IllegalStateException("boom")
 
-            val response = client.get("/inflation/cumulative") {
+            val response = client.get("/inflation/since") {
                 parameter("year", "2024")
                 parameter("month", "6")
+            }
+
+            assertEquals(HttpStatusCode.InternalServerError, response.status)
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("boom", body["error"])
+        }
+    }
+
+    @Test
+    fun `range endpoint returns bad request when parameters missing`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/inflation/between")
+            val json = GlobalContext.get().get<Json>()
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals(
+                "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
+                body["error"]
+            )
+            coVerify { useCase wasNot Called }
+        }
+    }
+
+    @Test
+    fun `range endpoint returns bad request when start date invalid`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/inflation/between") {
+                parameter("startYear", "2024")
+                parameter("startMonth", "13")
+                parameter("endYear", "2025")
+                parameter("endMonth", "2")
+            }
+            val json = GlobalContext.get().get<Json>()
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("Invalid start month or year value.", body["error"])
+            coVerify { useCase wasNot Called }
+        }
+    }
+
+    @Test
+    fun `range endpoint returns cumulative inflation when data available`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>()
+
+        testApplication {
+            configureApp(useCase)
+
+            val start = YearMonth(2021, 2)
+            val endExclusive = YearMonth(2023, 9)
+            val result = CalculateCumulativeInflationUseCase.Result(
+                from = start,
+                untilExclusive = endExclusive,
+                multiplier = BigDecimal("1.180")
+            )
+            coEvery { useCase.invoke(start, endExclusive) } returns result
+
+            val response = client.get("/inflation/between") {
+                parameter("startYear", start.year.toString())
+                parameter("startMonth", "2")
+                parameter("endYear", endExclusive.year.toString())
+                parameter("endMonth", "9")
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<CumulativeInflationResponse>(response.bodyAsText())
+            assertEquals(start.toIsoString(), body.from)
+            assertEquals(endExclusive.toIsoString(), body.until)
+            assertEquals(result.multiplier, body.multiplier)
+            coVerify(exactly = 1) { useCase.invoke(start, endExclusive) }
+        }
+    }
+
+    @Test
+    fun `range endpoint returns bad request when use case rejects range`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>()
+
+        testApplication {
+            configureApp(useCase)
+
+            val start = YearMonth(2024, 5)
+            val endExclusive = YearMonth(2024, 5)
+            coEvery { useCase.invoke(start, endExclusive) } throws IllegalArgumentException("End date must be after start date.")
+
+            val response = client.get("/inflation/between") {
+                parameter("startYear", "2024")
+                parameter("startMonth", "5")
+                parameter("endYear", "2024")
+                parameter("endMonth", "5")
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("End date must be after start date.", body["error"])
+        }
+    }
+
+    @Test
+    fun `range endpoint returns service unavailable when CPI data missing`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>()
+
+        testApplication {
+            configureApp(useCase)
+
+            val start = YearMonth(2022, 1)
+            val endExclusive = YearMonth(2024, 1)
+            coEvery { useCase.invoke(start, endExclusive) } throws MissingCpiDataException("No CPI data")
+
+            val response = client.get("/inflation/between") {
+                parameter("startYear", "2022")
+                parameter("startMonth", "1")
+                parameter("endYear", "2024")
+                parameter("endMonth", "1")
+            }
+
+            assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("No CPI data", body["error"])
+        }
+    }
+
+    @Test
+    fun `range endpoint returns internal server error for unexpected exception`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>()
+
+        testApplication {
+            configureApp(useCase)
+
+            val start = YearMonth(2020, 1)
+            val endExclusive = YearMonth(2021, 1)
+            coEvery { useCase.invoke(start, endExclusive) } throws IllegalStateException("boom")
+
+            val response = client.get("/inflation/between") {
+                parameter("startYear", "2020")
+                parameter("startMonth", "1")
+                parameter("endYear", "2021")
+                parameter("endMonth", "1")
             }
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
