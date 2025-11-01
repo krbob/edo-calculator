@@ -12,7 +12,9 @@ concurrency:
 
 env:
   APP_PORT: 8080
-  TEST_URL: "http://localhost:8080/inflation/cumulative?year=2010&month=1"
+  TEST_URLS: |
+    /inflation/since?year=2010&month=1
+    /inflation/between?startYear=2015&startMonth=1&endYear=2025&endMonth=1
 
 jobs:
   test:
@@ -65,21 +67,45 @@ jobs:
           docker rm -f app || true
           docker run -d --name app -p "${APP_PORT}:${APP_PORT}" "$IMAGE"
 
-      - name: Wait until endpoint returns 200
+      - name: Wait until all endpoints return 200
         env:
-          TEST_URL: ${{ env.TEST_URL }}
+          APP_PORT: ${{ env.APP_PORT }}
+          TEST_URLS: ${{ env.TEST_URLS }}
         run: |
-          echo "⏳ Waiting for $TEST_URL..."
-          for i in $(seq 1 60); do
-            if curl -fsS "$TEST_URL" > /dev/null; then
-              echo "✅ Endpoint responded with 200"
-              exit 0
+          set -euo pipefail
+          base="http://localhost:${APP_PORT}"
+          IFS=$'\n' read -r -d '' -a URLS < <(printf '%s\0' "${TEST_URLS}")
+          echo "⏳ Checking ${#URLS[@]} endpoint(s)..."
+
+          wait_for_200() {
+            local url="$1"
+            echo "→ Waiting for 200 from: $url"
+            for i in $(seq 1 60); do
+              if curl -fsS --max-time 1 "$url" > /dev/null; then
+                echo "✅ 200 from: $url"
+                return 0
+              fi
+              sleep 1
+            done
+            echo "❌ No 200 response within 60s from: $url"
+            return 1
+          }
+
+          failures=0
+          for raw in "${URLS[@]}"; do
+            url="${base}${raw}"
+
+            if ! wait_for_200 "$url"; then
+              failures=$((failures+1))
             fi
-            sleep 1
           done
-          echo "❌ Endpoint did not return 200 within 60s"
-          docker logs app || true
-          exit 1
+
+          if [[ $failures -gt 0 ]]; then
+            echo "📜 Container logs (some checks failed):"
+            docker logs app || true
+            exit 1
+          fi
+          echo "🎉 All endpoints responded with 200"
 
       - name: Clean up
         if: always()
@@ -120,11 +146,11 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Publish image
-        if: github.ref_name == 'main'
         env:
           JIB_TO_AUTH_USERNAME: ${{ github.actor }}
           JIB_TO_AUTH_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -e
           OWNER="${GITHUB_REPOSITORY_OWNER,,}"
           REPO="${GITHUB_REPOSITORY#*/}"
           IMAGE="ghcr.io/${OWNER}/${REPO}"

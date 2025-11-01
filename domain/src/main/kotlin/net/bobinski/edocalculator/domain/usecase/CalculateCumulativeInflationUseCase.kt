@@ -12,18 +12,30 @@ class CalculateCumulativeInflationUseCase(
     private val currentTimeProvider: CurrentTimeProvider
 ) {
 
-    suspend operator fun invoke(start: YearMonth): Result {
-        var endExclusive = currentTimeProvider.yearMonth()
+    suspend operator fun invoke(start: YearMonth, endExclusive: YearMonth? = null): Result {
+        if (endExclusive != null) {
+            require(endExclusive > start) {
+                "End date must be after start date."
+            }
+            val multiplier = inflationProvider.getInflationMultiplier(start, endExclusive)
+            return Result(
+                from = start,
+                untilExclusive = endExclusive,
+                multiplier = multiplier
+            )
+        }
+
+        var resolvedEndExclusive = currentTimeProvider.yearMonth()
         val multiplier = try {
-            inflationProvider.getInflationMultiplier(start, endExclusive)
+            inflationProvider.getInflationMultiplier(start, resolvedEndExclusive)
         } catch (_: MissingCpiDataException) {
-            endExclusive = endExclusive.minusMonth()
-            inflationProvider.getInflationMultiplier(start, endExclusive)
+            resolvedEndExclusive = resolvedEndExclusive.minusMonth()
+            inflationProvider.getInflationMultiplier(start, resolvedEndExclusive)
         }
 
         return Result(
             from = start,
-            untilExclusive = endExclusive,
+            untilExclusive = resolvedEndExclusive,
             multiplier = multiplier
         )
     }
