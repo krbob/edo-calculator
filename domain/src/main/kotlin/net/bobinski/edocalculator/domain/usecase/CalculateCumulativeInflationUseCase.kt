@@ -1,8 +1,10 @@
 package net.bobinski.edocalculator.domain.usecase
 
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.minusMonth
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.InflationProvider
+import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import java.math.BigDecimal
 
 class CalculateCumulativeInflationUseCase(
@@ -11,8 +13,13 @@ class CalculateCumulativeInflationUseCase(
 ) {
 
     suspend operator fun invoke(start: YearMonth): Result {
-        val endExclusive = currentTimeProvider.yearMonth()
-        val multiplier = inflationProvider.getInflationMultiplier(start, endExclusive)
+        var endExclusive = currentTimeProvider.yearMonth()
+        val multiplier = try {
+            inflationProvider.getInflationMultiplier(start, endExclusive)
+        } catch (_: MissingCpiDataException) {
+            endExclusive = endExclusive.minusMonth()
+            inflationProvider.getInflationMultiplier(start, endExclusive)
+        }
 
         return Result(
             from = start,
