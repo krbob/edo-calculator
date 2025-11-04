@@ -26,7 +26,7 @@ import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import java.math.BigDecimal
 
-class CumulativeInflationRouteTest {
+class InflationRouteTest {
 
     @Test
     fun `responds with bad request when query parameters are missing`() {
@@ -95,7 +95,7 @@ class CumulativeInflationRouteTest {
             assertEquals(HttpStatusCode.OK, response.status)
 
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<CumulativeInflationResponse>(response.bodyAsText())
+            val body = json.decodeFromString<InflationResponse>(response.bodyAsText())
             assertEquals(start.toIsoString(), body.from)
             assertEquals(result.untilExclusive.toIsoString(), body.until)
             assertEquals(result.multiplier, body.multiplier)
@@ -233,7 +233,7 @@ class CumulativeInflationRouteTest {
 
             assertEquals(HttpStatusCode.OK, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<CumulativeInflationResponse>(response.bodyAsText())
+            val body = json.decodeFromString<InflationResponse>(response.bodyAsText())
             assertEquals(start.toIsoString(), body.from)
             assertEquals(endExclusive.toIsoString(), body.until)
             assertEquals(result.multiplier, body.multiplier)
@@ -328,7 +328,7 @@ class CumulativeInflationRouteTest {
             }
             val json: Json = get()
             install(ContentNegotiation) { json(json) }
-            routing { cumulativeInflationRoute() }
+            routing { inflationRoute() }
         }
     }
 }

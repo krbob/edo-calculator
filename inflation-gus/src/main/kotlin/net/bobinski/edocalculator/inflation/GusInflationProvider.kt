@@ -5,7 +5,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.YearMonth
-import net.bobinski.edocalculator.domain.InflationProvider
+import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.inflation.api.GusApi
 import net.bobinski.edocalculator.inflation.api.GusAttribute

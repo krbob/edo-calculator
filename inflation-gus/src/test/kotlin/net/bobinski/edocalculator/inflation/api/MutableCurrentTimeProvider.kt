@@ -19,6 +19,10 @@ class MutableCurrentTimeProvider(start: Instant) : CurrentTimeProvider {
         val monthNumber = now.month.ordinal + 1
         return YearMonth(now.year, monthNumber)
     }
+
+    override fun localDate(): LocalDate {
+        return _now.toLocalDateTime(TimeZone.UTC).date
+    }
 }
 
 @OptIn(ExperimentalTime::class)

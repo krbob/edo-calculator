@@ -1,4 +1,4 @@
-package net.bobinski.edocalculator.domain
+package net.bobinski.edocalculator.domain.inflation
 
 import kotlinx.datetime.YearMonth
 import java.math.BigDecimal

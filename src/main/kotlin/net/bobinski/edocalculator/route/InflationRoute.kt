@@ -12,7 +12,7 @@ import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUse
 import org.koin.ktor.ext.inject
 import java.math.BigDecimal
 
-fun Route.cumulativeInflationRoute() {
+fun Route.inflationRoute() {
     val calculateCumulativeInflationUseCase: CalculateCumulativeInflationUseCase by inject()
 
     get("/inflation/since") {
@@ -20,9 +20,9 @@ fun Route.cumulativeInflationRoute() {
         val year = call.request.queryParameters["year"]?.toIntOrNull()
 
         if (month == null || year == null) {
-            call.respond(
+            call.respondError(
                 HttpStatusCode.BadRequest,
-                mapOf("error" to "Query parameters 'month' and 'year' must be integers.")
+                "Query parameters 'month' and 'year' must be integers."
             )
             return@get
         }
@@ -30,25 +30,25 @@ fun Route.cumulativeInflationRoute() {
         val start = try {
             YearMonth(year, month)
         } catch (_: IllegalArgumentException) {
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid month or year value."))
+            call.respondError(HttpStatusCode.BadRequest, "Invalid month or year value.")
             return@get
         }
 
         val result = try {
             calculateCumulativeInflationUseCase(start)
         } catch (e: IllegalArgumentException) {
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message))
+            call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
             return@get
         } catch (e: MissingCpiDataException) {
-            call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to e.message))
+            call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
             return@get
         } catch (e: Exception) {
-            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            call.respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
             return@get
         }
 
         call.respond(
-            CumulativeInflationResponse(
+            InflationResponse(
                 from = result.from.toIsoString(),
                 until = result.untilExclusive.toIsoString(),
                 multiplier = result.multiplier
@@ -63,9 +63,9 @@ fun Route.cumulativeInflationRoute() {
         val endYear = call.request.queryParameters["endYear"]?.toIntOrNull()
 
         if (startMonth == null || startYear == null || endMonth == null || endYear == null) {
-            call.respond(
+            call.respondError(
                 HttpStatusCode.BadRequest,
-                mapOf("error" to "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.")
+                "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers."
             )
             return@get
         }
@@ -73,32 +73,32 @@ fun Route.cumulativeInflationRoute() {
         val start = try {
             YearMonth(startYear, startMonth)
         } catch (_: IllegalArgumentException) {
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid start month or year value."))
+            call.respondError(HttpStatusCode.BadRequest, "Invalid start month or year value.")
             return@get
         }
 
         val endExclusive = try {
             YearMonth(endYear, endMonth)
         } catch (_: IllegalArgumentException) {
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid end month or year value."))
+            call.respondError(HttpStatusCode.BadRequest, "Invalid end month or year value.")
             return@get
         }
 
         val result = try {
             calculateCumulativeInflationUseCase(start, endExclusive)
         } catch (e: IllegalArgumentException) {
-            call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message))
+            call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
             return@get
         } catch (e: MissingCpiDataException) {
-            call.respond(HttpStatusCode.ServiceUnavailable, mapOf("error" to e.message))
+            call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
             return@get
         } catch (e: Exception) {
-            call.respond(HttpStatusCode.InternalServerError, mapOf("error" to e.message))
+            call.respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
             return@get
         }
 
         call.respond(
-            CumulativeInflationResponse(
+            InflationResponse(
                 from = result.from.toIsoString(),
                 until = result.untilExclusive.toIsoString(),
                 multiplier = result.multiplier
@@ -108,7 +108,7 @@ fun Route.cumulativeInflationRoute() {
 }
 
 @Serializable
-data class CumulativeInflationResponse(
+data class InflationResponse(
     val from: String,
     val until: String,
     @Contextual val multiplier: BigDecimal
