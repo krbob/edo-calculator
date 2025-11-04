@@ -15,4 +15,12 @@ interface InflationProvider {
         start: YearMonth,
         end: YearMonth
     ): BigDecimal
+
+    /**
+     * Returns the year-over-year inflation multiplier reported for [month].
+     *
+     * Example: if annual inflation for the month was +10%, returns 1.10
+     * If annual deflation: returns e.g. 0.97
+     */
+    suspend fun getYearlyInflationMultiplier(month: YearMonth): BigDecimal
 }

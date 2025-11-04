@@ -21,18 +21,18 @@ class CachingGusApiTest {
         val time = MutableCurrentTimeProvider(fixedNow(2025))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                year to { pts(year, 12) }
+                key(year) to { pts(year, 12) }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
 
-        val a = api.fetchYearInflation(year)
-        val b = api.fetchYearInflation(year)
+        val a = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        val b = api.fetchYearInflation(GusAttribute.MONTHLY, year)
 
         time.advance(365.days)
-        val c = api.fetchYearInflation(year)
+        val c = api.fetchYearInflation(GusAttribute.MONTHLY, year)
 
-        assertEquals(1, delegate.calls.getValue(year))
+        assertEquals(1, delegate.calls.getValue(key(year)))
         assertEquals(12, a.size)
         assertSame(a, b)
         assertSame(a, c)
@@ -45,24 +45,24 @@ class CachingGusApiTest {
         var version = 1
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                year to { pts(year, 5, base = if (version == 1) "100.0" else "101.0") }
+                key(year) to { pts(year, 5, base = if (version == 1) "100.0" else "101.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 5.minutes)
 
-        val a = api.fetchYearInflation(year)
-        assertEquals(1, delegate.calls.getValue(year))
+        val a = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(1, delegate.calls.getValue(key(year)))
         assertEquals(BigDecimal("100.0"), a.first().value)
 
         time.advance(4.minutes + 59.seconds)
-        val b = api.fetchYearInflation(year)
+        val b = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertSame(a, b)
-        assertEquals(1, delegate.calls.getValue(year))
+        assertEquals(1, delegate.calls.getValue(key(year)))
 
         time.advance(2.seconds)
         version = 2
-        val c = api.fetchYearInflation(year)
-        assertEquals(2, delegate.calls.getValue(year))
+        val c = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(2, delegate.calls.getValue(key(year)))
         assertEquals(BigDecimal("101.0"), c.first().value)
     }
 
@@ -72,19 +72,19 @@ class CachingGusApiTest {
         val time = MutableCurrentTimeProvider(fixedNow(2025))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                year to { pts(year, 3, "100.0") }
+                key(year) to { pts(year, 3, "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
 
-        val first = api.fetchYearInflation(year)
-        assertEquals(1, delegate.calls.getValue(year))
+        val first = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(1, delegate.calls.getValue(key(year)))
 
         time.advance(2.minutes)
-        delegate.throwOn += year
+        delegate.throwOn += key(year)
 
-        val second = api.fetchYearInflation(year)
-        assertEquals(2, delegate.calls.getValue(year))
+        val second = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(2, delegate.calls.getValue(key(year)))
         assertSame(first, second)
         assertEquals(3, second.size)
     }
@@ -95,19 +95,19 @@ class CachingGusApiTest {
         val time = MutableCurrentTimeProvider(fixedNow(2025))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                year to { pts(year, 6, "100.0") }
+                key(year) to { pts(year, 6, "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
 
-        api.fetchYearInflation(year)
-        assertEquals(1, delegate.calls.getValue(year))
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(1, delegate.calls.getValue(key(year)))
 
         time.advance(2.minutes)
 
-        (1..20).map { async { api.fetchYearInflation(year) } }.awaitAll()
+        (1..20).map { async { api.fetchYearInflation(GusAttribute.MONTHLY, year) } }.awaitAll()
 
-        assertEquals(2, delegate.calls.getValue(year))
+        assertEquals(2, delegate.calls.getValue(key(year)))
     }
 
     @Test
@@ -117,39 +117,42 @@ class CachingGusApiTest {
         val time = MutableCurrentTimeProvider(fixedNow(2025))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                past to { pts(past, 12, "100.0") },
-                cur to { pts(cur, 4, "100.0") }
+                key(past) to { pts(past, 12, "100.0") },
+                key(cur) to { pts(cur, 4, "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
 
-        api.fetchYearInflation(past)
-        api.fetchYearInflation(cur)
-        assertEquals(1, delegate.calls.getValue(past))
-        assertEquals(1, delegate.calls.getValue(cur))
+        api.fetchYearInflation(GusAttribute.MONTHLY, past)
+        api.fetchYearInflation(GusAttribute.MONTHLY, cur)
+        assertEquals(1, delegate.calls.getValue(key(past)))
+        assertEquals(1, delegate.calls.getValue(key(cur)))
 
         time.advance(2.minutes)
-        api.fetchYearInflation(past)
-        api.fetchYearInflation(cur)
+        api.fetchYearInflation(GusAttribute.MONTHLY, past)
+        api.fetchYearInflation(GusAttribute.MONTHLY, cur)
 
-        assertEquals(1, delegate.calls.getValue(past))
-        assertEquals(2, delegate.calls.getValue(cur))
+        assertEquals(1, delegate.calls.getValue(key(past)))
+        assertEquals(2, delegate.calls.getValue(key(cur)))
     }
 }
 
 private class CountingGusApi(
-    private val responses: MutableMap<Int, () -> List<GusIndicatorPoint>>
+    private val responses: MutableMap<Pair<GusAttribute, Int>, () -> List<GusIndicatorPoint>>
 ) : GusApi {
-    val calls = mutableMapOf<Int, Int>().withDefault { 0 }
-    var throwOn: MutableSet<Int> = mutableSetOf()
+    val calls = mutableMapOf<Pair<GusAttribute, Int>, Int>().withDefault { 0 }
+    var throwOn: MutableSet<Pair<GusAttribute, Int>> = mutableSetOf()
 
-    override suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint> {
-        calls[year] = calls.getValue(year) + 1
-        if (year in throwOn) error("boom $year")
-        return responses[year]?.invoke()
-            ?: error("no response for $year")
+    override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
+        val key = attribute to year
+        calls[key] = calls.getValue(key) + 1
+        if (key in throwOn) error("boom $attribute $year")
+        return responses[key]?.invoke()
+            ?: error("no response for $attribute $year")
     }
 }
+
+private fun key(year: Int) = GusAttribute.MONTHLY to year
 
 private fun pts(year: Int, count: Int, base: String = "100.0"): List<GusIndicatorPoint> =
     (1..count).map { i ->
