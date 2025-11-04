@@ -16,6 +16,7 @@ env:
     /inflation/since?year=2010&month=1
     /inflation/between?startYear=2015&startMonth=1&endYear=2025&endMonth=1
     /edo/value?purchaseYear=2020&purchaseMonth=1&purchaseDay=1&firstPeriodRate=2.7&margin=1.5
+    /edo/value/at?purchaseYear=2020&purchaseMonth=1&purchaseDay=1&firstPeriodRate=2.7&margin=1.5&asOfYear=2024&asOfMonth=6&asOfDay=15
 
 jobs:
   test:

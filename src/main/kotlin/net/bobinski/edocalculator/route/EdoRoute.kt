@@ -21,47 +21,71 @@ fun Route.edoRoute() {
 
     get("/edo/value") {
         val purchaseDate = call.parsePurchaseDate() ?: return@get
-        val firstPeriodRate = call.request.queryParameters["firstPeriodRate"]?.toBigDecimalOrNull()
-        val margin = call.request.queryParameters["margin"]?.toBigDecimalOrNull()
-        val principal = call.request.queryParameters["principal"]?.toBigDecimalOrNull() ?: BigDecimal(100)
-
-        if (firstPeriodRate == null || margin == null) {
-            call.respondError(
-                HttpStatusCode.BadRequest,
-                "Query parameters 'firstPeriodRate' and 'margin' must be decimals."
-            )
-            return@get
-        }
-
-        val result = try {
-            calculateEdoValueUseCase(
-                purchaseDate = purchaseDate,
-                firstPeriodRate = firstPeriodRate,
-                margin = margin,
-                principal = principal
-            )
-        } catch (e: IllegalArgumentException) {
-            call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
-            return@get
-        } catch (e: MissingCpiDataException) {
-            call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
-            return@get
-        } catch (e: Exception) {
-            call.respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
-            return@get
-        }
-
-        call.respond(
-            EdoResponse(
-                purchaseDate = result.purchaseDate.toIsoString(),
-                asOf = result.asOf.toIsoString(),
-                firstPeriodRate = result.firstPeriodRate,
-                margin = result.margin,
-                principal = result.principal,
-                edoValue = result.edoValue
-            )
+        call.respondWithEdoValue(
+            purchaseDate = purchaseDate,
+            asOf = null,
+            calculateEdoValueUseCase = calculateEdoValueUseCase
         )
     }
+
+    get("/edo/value/at") {
+        val purchaseDate = call.parsePurchaseDate() ?: return@get
+        val asOfDate = call.parseAsOfDate() ?: return@get
+
+        call.respondWithEdoValue(
+            purchaseDate = purchaseDate,
+            asOf = asOfDate,
+            calculateEdoValueUseCase = calculateEdoValueUseCase
+        )
+    }
+}
+
+private suspend fun ApplicationCall.respondWithEdoValue(
+    purchaseDate: LocalDate,
+    asOf: LocalDate?,
+    calculateEdoValueUseCase: CalculateEdoValueUseCase
+) {
+    val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBigDecimalOrNull()
+    val margin = request.queryParameters["margin"]?.toBigDecimalOrNull()
+    val principal = request.queryParameters["principal"]?.toBigDecimalOrNull() ?: BigDecimal(100)
+
+    if (firstPeriodRate == null || margin == null) {
+        respondError(
+            HttpStatusCode.BadRequest,
+            "Query parameters 'firstPeriodRate' and 'margin' must be decimals."
+        )
+        return
+    }
+
+    val result = try {
+        calculateEdoValueUseCase(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = firstPeriodRate,
+            margin = margin,
+            principal = principal,
+            asOf = asOf
+        )
+    } catch (e: IllegalArgumentException) {
+        respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
+        return
+    } catch (e: MissingCpiDataException) {
+        respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
+        return
+    } catch (e: Exception) {
+        respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
+        return
+    }
+
+    respond(
+        EdoResponse(
+            purchaseDate = result.purchaseDate.toIsoString(),
+            asOf = result.asOf.toIsoString(),
+            firstPeriodRate = result.firstPeriodRate,
+            margin = result.margin,
+            principal = result.principal,
+            edoValue = result.edoValue
+        )
+    )
 }
 
 @Serializable
@@ -74,23 +98,42 @@ data class EdoResponse(
     val edoValue: EdoValue
 )
 
-private suspend fun ApplicationCall.parsePurchaseDate(): LocalDate? {
-    val year = request.queryParameters["purchaseYear"]?.toIntOrNull()
-    val month = request.queryParameters["purchaseMonth"]?.toIntOrNull()
-    val day = request.queryParameters["purchaseDay"]?.toIntOrNull()
+private suspend fun ApplicationCall.parsePurchaseDate(): LocalDate? = parseDate(
+    yearParam = "purchaseYear",
+    monthParam = "purchaseMonth",
+    dayParam = "purchaseDay",
+    missingMessage = "Query parameters 'purchaseYear' and 'purchaseMonth' and 'purchaseDay' must be integers.",
+    invalidMessage = "Invalid day, month or year value."
+)
+
+private suspend fun ApplicationCall.parseAsOfDate(): LocalDate? = parseDate(
+    yearParam = "asOfYear",
+    monthParam = "asOfMonth",
+    dayParam = "asOfDay",
+    missingMessage = "Query parameters 'asOfYear' and 'asOfMonth' and 'asOfDay' must be integers.",
+    invalidMessage = "Invalid as-of day, month or year value."
+)
+
+private suspend fun ApplicationCall.parseDate(
+    yearParam: String,
+    monthParam: String,
+    dayParam: String,
+    missingMessage: String,
+    invalidMessage: String
+): LocalDate? {
+    val year = request.queryParameters[yearParam]?.toIntOrNull()
+    val month = request.queryParameters[monthParam]?.toIntOrNull()
+    val day = request.queryParameters[dayParam]?.toIntOrNull()
 
     if (year == null || month == null || day == null) {
-        respondError(
-            HttpStatusCode.BadRequest,
-            "Query parameters 'purchaseYear' and 'purchaseMonth' and 'purchaseDay' must be integers."
-        )
+        respondError(HttpStatusCode.BadRequest, missingMessage)
         return null
     }
 
     return try {
         LocalDate(year = year, month = month, day = day)
     } catch (_: IllegalArgumentException) {
-        respondError(HttpStatusCode.BadRequest, "Invalid day, month or year value.")
+        respondError(HttpStatusCode.BadRequest, invalidMessage)
         null
     }
 }

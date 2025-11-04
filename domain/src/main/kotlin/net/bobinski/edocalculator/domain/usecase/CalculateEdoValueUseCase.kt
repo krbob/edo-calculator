@@ -25,11 +25,17 @@ class CalculateEdoValueUseCase(
         purchaseDate: LocalDate,
         firstPeriodRate: BigDecimal,
         margin: BigDecimal,
-        principal: BigDecimal = BigDecimal(100)
+        principal: BigDecimal = BigDecimal(100),
+        asOf: LocalDate? = null
     ): Result {
-        val today = currentTimeProvider.localDate()
+        val currentDate = currentTimeProvider.localDate()
+        val evaluationDate = asOf ?: currentDate
 
-        require(purchaseDate <= today) { "As-of date must be on or after purchase date." }
+        if (asOf != null) {
+            require(evaluationDate <= currentDate) { "As-of date must not be in the future." }
+        }
+
+        require(purchaseDate <= evaluationDate) { "As-of date must be on or after purchase date." }
         require(principal.signum() >= 0) { "Principal must not be negative." }
         require(firstPeriodRate.signum() >= 0) { "First period rate must not be negative." }
         require(margin.signum() >= 0) { "Margin must not be negative." }
@@ -41,17 +47,17 @@ class CalculateEdoValueUseCase(
         var periodStart = purchaseDate
 
         for (periodIndex in 1..TOTAL_PERIODS) {
-            if (today < periodStart) {
+            if (evaluationDate < periodStart) {
                 break
             }
 
             val periodEnd = periodStart.plus(1, DateTimeUnit.YEAR)
             val daysInPeriod = periodStart.daysUntil(periodEnd)
-            val fullPeriod = today >= periodEnd
+            val fullPeriod = evaluationDate >= periodEnd
             val daysElapsed = if (fullPeriod) {
                 daysInPeriod
             } else {
-                periodStart.daysUntil(today)
+                periodStart.daysUntil(evaluationDate)
             }
 
             val inflationFraction = if (periodIndex == 1) null else
@@ -101,7 +107,7 @@ class CalculateEdoValueUseCase(
 
         return Result(
             purchaseDate = purchaseDate,
-            asOf = today,
+            asOf = evaluationDate,
             firstPeriodRate = firstPeriodRate.setScale(2, RoundingMode.HALF_UP),
             margin = margin.setScale(2, RoundingMode.HALF_UP),
             principal = normalizedPrincipal,

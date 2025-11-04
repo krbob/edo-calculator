@@ -134,6 +134,56 @@ class CalculateEdoValueUseCaseTest {
         assertEquals("As-of date must be on or after purchase date.", exception.message)
     }
 
+    @Test
+    fun `throws when provided as-of date is in the future`() {
+        val inflationProvider = FakeInflationProvider(emptyMap())
+        val currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = inflationProvider,
+            currentTimeProvider = currentTimeProvider
+        )
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(
+                    purchaseDate = LocalDate(2023, 1, 1),
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100"),
+                    asOf = LocalDate(2024, 1, 2)
+                )
+            }
+        }
+
+        assertEquals("As-of date must not be in the future.", exception.message)
+    }
+
+    @Test
+    fun `uses provided as-of date when calculating value`() = runTest {
+        val inflationProvider = FakeInflationProvider(emptyMap())
+        val currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2025, 1, 1))
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = inflationProvider,
+            currentTimeProvider = currentTimeProvider
+        )
+
+        val purchaseDate = LocalDate(2023, 1, 1)
+        val asOf = purchaseDate
+
+        val result = useCase(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("100"),
+            asOf = asOf
+        )
+
+        assertEquals(asOf, result.asOf)
+        assertEquals(BigDecimal("0.00"), result.edoValue.totalAccruedInterest)
+        assertEquals(1, result.edoValue.periods.size)
+        assertEquals(0, result.edoValue.periods.single().daysElapsed)
+    }
+
     private class FakeInflationProvider(
         private val yearlyMultipliers: Map<YearMonth, BigDecimal>
     ) : InflationProvider {
