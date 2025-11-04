@@ -100,6 +100,58 @@ class EdoRouteTest {
     }
 
     @Test
+    fun `responds with bad request when as-of date parameters missing`() {
+        val useCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value/at") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+            }
+
+            val json = GlobalContext.get().get<Json>()
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals(
+                "Query parameters 'asOfYear' and 'asOfMonth' and 'asOfDay' must be integers.",
+                body["error"]
+            )
+            coVerify { useCase wasNot Called }
+        }
+    }
+
+    @Test
+    fun `responds with bad request when as-of date invalid`() {
+        val useCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value/at") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("asOfYear", "2024")
+                parameter("asOfMonth", "2")
+                parameter("asOfDay", "31")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+            }
+
+            val json = GlobalContext.get().get<Json>()
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("Invalid as-of day, month or year value.", body["error"])
+            coVerify { useCase wasNot Called }
+        }
+    }
+
+    @Test
     fun `responds with edo value when request is valid`() {
         val useCase = mockk<CalculateEdoValueUseCase>()
         val purchaseDate = LocalDate(2023, 1, 1)
@@ -133,7 +185,8 @@ class EdoRouteTest {
                 purchaseDate = purchaseDate,
                 firstPeriodRate = BigDecimal("7.25"),
                 margin = BigDecimal("1.25"),
-                principal = BigDecimal("100")
+                principal = BigDecimal("100"),
+                asOf = null
             )
         } returns expectedResult
 
@@ -164,7 +217,84 @@ class EdoRouteTest {
                     purchaseDate = purchaseDate,
                     firstPeriodRate = BigDecimal("7.25"),
                     margin = BigDecimal("1.25"),
-                    principal = BigDecimal("100")
+                    principal = BigDecimal("100"),
+                    asOf = null
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `responds with edo value when as-of date provided`() {
+        val useCase = mockk<CalculateEdoValueUseCase>()
+        val purchaseDate = LocalDate(2023, 1, 1)
+        val asOf = LocalDate(2023, 6, 1)
+        val period = EdoPeriodBreakdown(
+            index = 1,
+            startDate = purchaseDate.toIsoString(),
+            endDate = LocalDate(2024, 1, 1).toIsoString(),
+            daysInPeriod = 365,
+            daysElapsed = 151,
+            ratePercent = BigDecimal("7.25"),
+            inflationPercent = null,
+            interestAccrued = BigDecimal("3.00"),
+            value = BigDecimal("103.00")
+        )
+        val expectedResult = CalculateEdoValueUseCase.Result(
+            purchaseDate = purchaseDate,
+            asOf = asOf,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("100"),
+            edoValue = EdoValue(
+                totalValue = BigDecimal("103.00"),
+                totalAccruedInterest = BigDecimal("3.00"),
+                periods = listOf(period)
+            )
+        )
+
+        coEvery {
+            useCase.invoke(
+                purchaseDate = purchaseDate,
+                firstPeriodRate = BigDecimal("7.25"),
+                margin = BigDecimal("1.25"),
+                principal = BigDecimal("100"),
+                asOf = asOf
+            )
+        } returns expectedResult
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value/at") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("asOfYear", "2023")
+                parameter("asOfMonth", "6")
+                parameter("asOfDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+                parameter("principal", "100")
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<EdoResponse>(response.bodyAsText())
+            assertEquals(expectedResult.purchaseDate.toIsoString(), body.purchaseDate)
+            assertEquals(expectedResult.asOf.toIsoString(), body.asOf)
+            assertEquals(expectedResult.firstPeriodRate, body.firstPeriodRate)
+            assertEquals(expectedResult.margin, body.margin)
+            assertEquals(expectedResult.principal, body.principal)
+            assertEquals(expectedResult.edoValue.periods.size, body.edoValue.periods.size)
+            coVerify(exactly = 1) {
+                useCase.invoke(
+                    purchaseDate = purchaseDate,
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100"),
+                    asOf = asOf
                 )
             }
         }
@@ -173,7 +303,7 @@ class EdoRouteTest {
     @Test
     fun `responds with bad request when use case rejects request`() {
         val useCase = mockk<CalculateEdoValueUseCase>()
-        coEvery { useCase.invoke(any(), any(), any(), any()) } throws IllegalArgumentException("Principal too small")
+        coEvery { useCase.invoke(any(), any(), any(), any(), any()) } throws IllegalArgumentException("Principal too small")
 
         testApplication {
             configureApp(useCase)
@@ -196,7 +326,7 @@ class EdoRouteTest {
     @Test
     fun `responds with service unavailable when CPI data is missing`() {
         val useCase = mockk<CalculateEdoValueUseCase>()
-        coEvery { useCase.invoke(any(), any(), any(), any()) } throws MissingCpiDataException("Missing CPI")
+        coEvery { useCase.invoke(any(), any(), any(), any(), any()) } throws MissingCpiDataException("Missing CPI")
 
         testApplication {
             configureApp(useCase)
@@ -219,7 +349,7 @@ class EdoRouteTest {
     @Test
     fun `responds with generic message when unexpected exception is thrown`() {
         val useCase = mockk<CalculateEdoValueUseCase>()
-        coEvery { useCase.invoke(any(), any(), any(), any()) } throws IllegalStateException()
+        coEvery { useCase.invoke(any(), any(), any(), any(), any()) } throws IllegalStateException()
 
         testApplication {
             configureApp(useCase)
