@@ -36,20 +36,36 @@ class GusApiTest : KoinTest {
 
     @Test
     fun `200 for current year allows partial data and normalizes`() = runTest {
+        val attribute = GusAttribute.MONTHLY
         val client = http { req ->
             assertEquals("/api/1.1.0/indicators/indicator-data-indicator", req.url.encodedPath)
-            assertEquals("639", req.url.parameters["id-wskaznik"])
+            assertEquals(attribute.id.toString(), req.url.parameters["id-wskaznik"])
             assertEquals("2012", req.url.parameters["id-rok"])
             assertEquals("pl", req.url.parameters["lang"])
             respond(payloadForYear(2012), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2012)))
-        val points = api.fetchYearInflation(2012)
+        val points = api.fetchYearInflation(attribute, 2012)
 
         assertEquals(2, points.size)
         assertEquals(2012, points[0].year)
         assertEquals(247, points[0].periodId)
         assertEquals(BigDecimal("102.5"), points[0].value)
+    }
+
+    @Test
+    fun `request uses provided attribute id`() = runTest {
+        val attribute = GusAttribute.ANNUAL
+        var captured: String? = null
+        val client = http { req ->
+            captured = req.url.parameters["id-wskaznik"]
+            respond(payloadForYear(2012), HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2012)))
+
+        api.fetchYearInflation(attribute, 2012)
+
+        assertEquals(attribute.id.toString(), captured)
     }
 
     @Test
@@ -64,7 +80,7 @@ class GusApiTest : KoinTest {
             )
         }
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015)))
-        val points = api.fetchYearInflation(2015)
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
 
         assertEquals(2, points.size)
         assertEquals(2, hits)
@@ -81,7 +97,7 @@ class GusApiTest : KoinTest {
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)))
 
         assertFailsWith<MissingCpiDataException> {
-            api.fetchYearInflation(2015)
+            api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
         }
     }
 
@@ -95,7 +111,7 @@ class GusApiTest : KoinTest {
         }
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)))
 
-        val points = api.fetchYearInflation(2015)
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
 
         assertEquals(12, points.size)
         assertEquals((241..252).toList(), points.map { it.periodId })
@@ -115,7 +131,7 @@ class GusApiTest : KoinTest {
             respond(dupPayload, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
-        val points = api.fetchYearInflation(year)
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, year)
 
         assertEquals(listOf(247, 248), points.map { it.periodId })
     }
@@ -137,7 +153,7 @@ class GusApiTest : KoinTest {
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)))
 
         assertFailsWith<MissingCpiDataException> {
-            api.fetchYearInflation(year)
+            api.fetchYearInflation(GusAttribute.MONTHLY, year)
         }
     }
 
@@ -157,7 +173,7 @@ class GusApiTest : KoinTest {
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
 
         assertFailsWith<MissingCpiDataException> {
-            api.fetchYearInflation(year)
+            api.fetchYearInflation(GusAttribute.MONTHLY, year)
         }
     }
 
@@ -167,7 +183,7 @@ class GusApiTest : KoinTest {
             client = http { error("should not be called") },
             currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025))
         )
-        assertFailsWith<IllegalArgumentException> { api.fetchYearInflation(2009) }
+        assertFailsWith<IllegalArgumentException> { api.fetchYearInflation(GusAttribute.MONTHLY, 2009) }
     }
 }
 

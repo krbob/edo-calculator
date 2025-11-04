@@ -22,20 +22,23 @@ internal class CachingGusApi(
         val complete: Boolean
     )
 
-    private val cache = ConcurrentHashMap<Int, Entry>()
-    private val locks = ConcurrentHashMap<Int, Mutex>()
+    private data class CacheKey(val attribute: GusAttribute, val year: Int)
 
-    override suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint> {
-        val lock = locks.computeIfAbsent(year) { Mutex() }
+    private val cache = ConcurrentHashMap<CacheKey, Entry>()
+    private val locks = ConcurrentHashMap<CacheKey, Mutex>()
 
-        cache[year]?.takeIf { it.isFresh(year) }?.let { return it.data }
+    override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
+        val key = CacheKey(attribute, year)
+        val lock = locks.computeIfAbsent(key) { Mutex() }
+
+        cache[key]?.takeIf { it.isFresh(year) }?.let { return it.data }
 
         return lock.withLock {
-            cache[year]?.takeIf { it.isFresh(year) }?.let { return@withLock it.data }
+            cache[key]?.takeIf { it.isFresh(year) }?.let { return@withLock it.data }
 
-            val refreshed = runCatching { delegate.fetchYearInflation(year) }
+            val refreshed = runCatching { delegate.fetchYearInflation(attribute, year) }
                 .onFailure { error ->
-                    cache[year]?.let { return@withLock it.data }
+                    cache[key]?.let { return@withLock it.data }
                     throw error
                 }
                 .getOrThrow()
@@ -45,7 +48,7 @@ internal class CachingGusApi(
                 storedAt = currentTimeProvider.instant(),
                 complete = refreshed.isComplete(year)
             )
-            cache[year] = entry
+            cache[key] = entry
             entry.data
         }
     }

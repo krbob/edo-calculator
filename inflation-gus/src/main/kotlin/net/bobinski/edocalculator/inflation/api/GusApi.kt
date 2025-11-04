@@ -12,7 +12,7 @@ import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import kotlin.time.Duration.Companion.milliseconds
 
 internal interface GusApi {
-    suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint>
+    suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint>
 }
 
 internal class GusApiImpl(
@@ -22,13 +22,13 @@ internal class GusApiImpl(
     private val currentTimeProvider: CurrentTimeProvider
 ) : GusApi {
 
-    override suspend fun fetchYearInflation(year: Int): List<GusIndicatorPoint> {
+    override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
         require(year in MIN_SUPPORTED_YEAR..currentYear()) { "Unsupported year: $year" }
 
         return limiter.limit {
             retry.execute {
                 val response: List<GusIndicatorPoint> = client.get {
-                    url(buildEndpoint(year))
+                    url(buildEndpoint(attribute, year))
                     expectSuccess = true
                 }.body()
 
@@ -37,9 +37,9 @@ internal class GusApiImpl(
         }
     }
 
-    private fun buildEndpoint(year: Int): Url = URLBuilder(BASE_URL).apply {
+    private fun buildEndpoint(attribute: GusAttribute, year: Int): Url = URLBuilder(BASE_URL).apply {
         encodedPath = "/api/1.1.0/indicators/indicator-data-indicator"
-        parameters.append("id-wskaznik", INDICATOR_ID.toString())
+        parameters.append("id-wskaznik", attribute.id.toString())
         parameters.append("id-rok", year.toString())
         parameters.append("lang", LANG)
     }.build()
@@ -87,9 +87,13 @@ internal class GusApiImpl(
 
     companion object {
         private const val BASE_URL = "https://api-sdp.stat.gov.pl"
-        private const val INDICATOR_ID: Int = 639
         private const val LANG = "pl"
         private const val MIN_SUPPORTED_YEAR = 2010
         private const val EXPECTED_MONTHS = 12
     }
+}
+
+internal enum class GusAttribute(val id: Int) {
+    MONTHLY(639),
+    ANNUAL(1832)
 }

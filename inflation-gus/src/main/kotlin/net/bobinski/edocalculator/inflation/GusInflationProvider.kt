@@ -8,6 +8,7 @@ import kotlinx.datetime.YearMonth
 import net.bobinski.edocalculator.domain.InflationProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.inflation.api.GusApi
+import net.bobinski.edocalculator.inflation.api.GusAttribute
 import net.bobinski.edocalculator.inflation.api.GusIndicatorPoint
 import java.math.BigDecimal
 import java.math.MathContext
@@ -23,7 +24,7 @@ internal class GusInflationProvider internal constructor(private val api: GusApi
         val months = (start..<end).toList()
         if (months.isEmpty()) return@coroutineScope BigDecimal.ONE
 
-        val yearlyData = fetchInflationData(months)
+        val yearlyData = fetchInflationData(months, GusAttribute.MONTHLY)
         val monthlyMultipliers = yearlyData.toMonthlyMultipliers()
 
         return@coroutineScope months.fold(BigDecimal.ONE) { acc, ym ->
@@ -33,14 +34,26 @@ internal class GusInflationProvider internal constructor(private val api: GusApi
         }.setScale(6, RoundingMode.HALF_EVEN)
     }
 
-    private suspend fun fetchInflationData(months: List<YearMonth>): Map<Int, List<GusIndicatorPoint>> =
+    override suspend fun getYearlyInflationMultiplier(month: YearMonth): BigDecimal = coroutineScope {
+        val yearlyData = fetchInflationData(listOf(month), GusAttribute.ANNUAL)
+        val yearlyMultipliers = yearlyData.toMonthlyMultipliers()
+
+        return@coroutineScope yearlyMultipliers[month]
+            ?.setScale(6, RoundingMode.HALF_EVEN)
+            ?: throw MissingCpiDataException.forMonth(month)
+    }
+
+    private suspend fun fetchInflationData(
+        months: List<YearMonth>,
+        attribute: GusAttribute
+    ): Map<Int, List<GusIndicatorPoint>> =
         coroutineScope {
             months
                 .asSequence()
                 .map { it.year }
                 .distinct()
                 .map { year ->
-                    async(Dispatchers.IO) { year to api.fetchYearInflation(year) }
+                    async(Dispatchers.IO) { year to api.fetchYearInflation(attribute, year) }
                 }
                 .toList()
                 .awaitAll()
