@@ -5,7 +5,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minusMonth
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
-import net.bobinski.edocalculator.domain.InflationProvider
+import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

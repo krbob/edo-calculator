@@ -1,6 +1,6 @@
 package net.bobinski.edocalculator.inflation.dependency
 
-import net.bobinski.edocalculator.domain.InflationProvider
+import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import net.bobinski.edocalculator.inflation.GusInflationProvider
 import net.bobinski.edocalculator.inflation.api.CachingGusApi
 import net.bobinski.edocalculator.inflation.api.GusApi
