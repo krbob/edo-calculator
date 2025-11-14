@@ -16,18 +16,18 @@ interface CurrentTimeProvider {
 }
 
 @OptIn(ExperimentalTime::class)
-internal class SystemCurrentTimeProvider : CurrentTimeProvider {
-    override fun instant(): Instant {
-        return Clock.System.now()
-    }
+internal class SystemCurrentTimeProvider(
+    private val timeZone: TimeZone = TimeZone.currentSystemDefault()
+) : CurrentTimeProvider {
+    override fun instant(): Instant = Clock.System.now()
 
     override fun yearMonth(): YearMonth {
-        val now = instant().toLocalDateTime(TimeZone.UTC)
+        val now = instant().toLocalDateTime(timeZone)
         val monthNumber = now.month.ordinal + 1
         return YearMonth(now.year, monthNumber)
     }
 
     override fun localDate(): LocalDate {
-        return instant().toLocalDateTime(TimeZone.UTC).date
+        return instant().toLocalDateTime(timeZone).date
     }
 }
