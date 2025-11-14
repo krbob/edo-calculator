@@ -2,6 +2,8 @@ package net.bobinski.edocalculator.inflation.api
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.number
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
@@ -60,8 +62,23 @@ internal class CachingGusApi(
             .size == 12
 
     private fun Entry.isFresh(year: Int): Boolean {
-        if (complete && year < currentTimeProvider.yearMonth().year) return true
+        val nowDate = currentTimeProvider.localDate()
+        val currentYear = nowDate.year
+        if (complete && year < currentYear) return true
+
         val age = currentTimeProvider.instant() - storedAt
+
+        if (year == currentYear) {
+            val cachedRecords = data.count { it.year == year }
+            val expectedRecords = expectedRecordsForCurrentYear(nowDate)
+            if (cachedRecords >= expectedRecords) return true
+            return age < ttl
+        }
+
         return age < ttl
+    }
+
+    private fun expectedRecordsForCurrentYear(now: LocalDate): Int {
+        return (now.month.number - 1).coerceIn(0, 12)
     }
 }

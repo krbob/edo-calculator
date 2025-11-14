@@ -5,6 +5,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.minus
+import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
@@ -135,7 +136,7 @@ class CalculateEdoValueUseCase(
     private suspend fun inflationFractionForPeriod(
         periodStart: LocalDate
     ): BigDecimal {
-        val inflationMonth = YearMonth(periodStart.year, periodStart.month.ordinal + 1)
+        val inflationMonth = YearMonth(periodStart.year, periodStart.month.number)
             .minus(2, DateTimeUnit.MONTH)
 
         val multiplier = inflationProvider.getYearlyInflationMultiplier(inflationMonth)

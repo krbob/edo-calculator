@@ -1,9 +1,6 @@
 package net.bobinski.edocalculator.core.time
 
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.YearMonth
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
@@ -23,8 +20,7 @@ internal class SystemCurrentTimeProvider(
 
     override fun yearMonth(): YearMonth {
         val now = instant().toLocalDateTime(timeZone)
-        val monthNumber = now.month.ordinal + 1
-        return YearMonth(now.year, monthNumber)
+        return YearMonth(now.year, now.month.number)
     }
 
     override fun localDate(): LocalDate {
