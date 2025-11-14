@@ -16,8 +16,7 @@ class MutableCurrentTimeProvider(start: Instant) : CurrentTimeProvider {
 
     override fun yearMonth(): YearMonth {
         val now = _now.toLocalDateTime(TimeZone.UTC)
-        val monthNumber = now.month.ordinal + 1
-        return YearMonth(now.year, monthNumber)
+        return YearMonth(now.year, now.month.number)
     }
 
     override fun localDate(): LocalDate {

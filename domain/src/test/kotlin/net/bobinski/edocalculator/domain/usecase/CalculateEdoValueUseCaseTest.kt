@@ -6,6 +6,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
+import kotlinx.datetime.number
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -204,7 +205,7 @@ class CalculateEdoValueUseCaseTest {
             throw UnsupportedOperationException("instant() is not used in tests")
         }
 
-        override fun yearMonth(): YearMonth = YearMonth(date.year, date.month.ordinal + 1)
+        override fun yearMonth(): YearMonth = YearMonth(date.year, date.month.number)
 
         override fun localDate(): LocalDate {
             return date

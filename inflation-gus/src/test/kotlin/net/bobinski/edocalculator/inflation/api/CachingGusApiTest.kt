@@ -8,8 +8,8 @@ import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class)
@@ -39,40 +39,66 @@ class CachingGusApiTest {
     }
 
     @Test
-    fun `current year uses ttl and refreshes after it`() = runTest {
+    fun `current year keeps cached data while expected months satisfied`() = runTest {
         val year = 2025
-        val time = MutableCurrentTimeProvider(fixedNow(2025))
-        var version = 1
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 8, day = 20))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                key(year) to { pts(year, 5, base = if (version == 1) "100.0" else "101.0") }
+                key(year) to { pts(year, 7, base = "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 5.minutes)
 
         val a = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(1, delegate.calls.getValue(key(year)))
-        assertEquals(BigDecimal("100.0"), a.first().value)
+        assertEquals(7, a.size)
 
-        time.advance(4.minutes + 59.seconds)
+        time.advance(2.hours)
         val b = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+
         assertSame(a, b)
         assertEquals(1, delegate.calls.getValue(key(year)))
+    }
 
-        time.advance(2.seconds)
+    @Test
+    fun `current year waiting for next publication refreshes hourly`() = runTest {
+        val year = 2025
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 11, day = 5))
+        var version = 1
+        val delegate = CountingGusApi(
+            responses = mutableMapOf(
+                key(year) to {
+                    val count = if (version == 1) 9 else 10
+                    pts(year, count, base = if (version == 1) "100.0" else "101.0")
+                }
+            )
+        )
+        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.hours)
+
+        val first = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(1, delegate.calls.getValue(key(year)))
+        assertEquals(9, first.size)
+
+        time.advance(30.minutes)
+        val second = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertSame(first, second)
+        assertEquals(1, delegate.calls.getValue(key(year)))
+
+        time.advance(31.minutes)
         version = 2
-        val c = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        val third = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(2, delegate.calls.getValue(key(year)))
-        assertEquals(BigDecimal("101.0"), c.first().value)
+        assertEquals(BigDecimal("101.0"), third.last().value)
+        assertEquals(10, third.size)
     }
 
     @Test
     fun `stale-if-error returns old data when refresh fails`() = runTest {
         val year = 2025
-        val time = MutableCurrentTimeProvider(fixedNow(2025))
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 11, day = 5))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                key(year) to { pts(year, 3, "100.0") }
+                key(year) to { pts(year, 9, "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
@@ -86,16 +112,16 @@ class CachingGusApiTest {
         val second = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(2, delegate.calls.getValue(key(year)))
         assertSame(first, second)
-        assertEquals(3, second.size)
+        assertEquals(9, second.size)
     }
 
     @Test
     fun `only one refresh runs per year under concurrency`() = runTest {
         val year = 2025
-        val time = MutableCurrentTimeProvider(fixedNow(2025))
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 11, day = 5))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
-                key(year) to { pts(year, 6, "100.0") }
+                key(year) to { pts(year, 9, "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
@@ -114,11 +140,11 @@ class CachingGusApiTest {
     fun `past year cached, current year refreshes independently`() = runTest {
         val past = 2023
         val cur = 2025
-        val time = MutableCurrentTimeProvider(fixedNow(2025))
+        val time = MutableCurrentTimeProvider(fixedNow(cur, month = 11, day = 5))
         val delegate = CountingGusApi(
             responses = mutableMapOf(
                 key(past) to { pts(past, 12, "100.0") },
-                key(cur) to { pts(cur, 4, "100.0") }
+                key(cur) to { pts(cur, 9, "100.0") }
             )
         )
         val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
