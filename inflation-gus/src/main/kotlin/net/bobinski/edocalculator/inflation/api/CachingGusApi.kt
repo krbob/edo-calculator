@@ -1,5 +1,6 @@
 package net.bobinski.edocalculator.inflation.api
 
+import kotlinx.coroutines.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.LocalDate
@@ -15,7 +16,9 @@ import kotlin.time.Instant
 internal class CachingGusApi(
     private val delegate: GusApi,
     private val currentTimeProvider: CurrentTimeProvider,
-    private val ttl: Duration = 1.hours
+    private val ttl: Duration = 1.hours,
+    prefetchScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    prefetchOnInit: Boolean = true
 ) : GusApi {
 
     private data class Entry(
@@ -28,6 +31,10 @@ internal class CachingGusApi(
 
     private val cache = ConcurrentHashMap<CacheKey, Entry>()
     private val locks = ConcurrentHashMap<CacheKey, Mutex>()
+    private val warmupJob: Job? = if (prefetchOnInit) {
+        val warmupRange = MIN_SUPPORTED_YEAR..currentTimeProvider.yearMonth().year
+        if (warmupRange.isEmpty()) null else prefetchScope.launch { warmUpCache(warmupRange) }
+    } else null
 
     override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
         val key = CacheKey(attribute, year)
@@ -45,15 +52,31 @@ internal class CachingGusApi(
                 }
                 .getOrThrow()
 
-            val entry = Entry(
-                data = refreshed,
-                storedAt = currentTimeProvider.instant(),
-                complete = refreshed.isComplete(year)
-            )
+            val entry = createEntry(year, refreshed)
             cache[key] = entry
             entry.data
         }
     }
+
+    internal suspend fun awaitWarmup() {
+        warmupJob?.join()
+    }
+
+    private suspend fun warmUpCache(years: IntRange) {
+        for (attribute in GusAttribute.entries) {
+            for (year in years) {
+                val data = delegate.fetchYearInflation(attribute, year)
+                val key = CacheKey(attribute, year)
+                cache[key] = createEntry(year, data)
+            }
+        }
+    }
+
+    private fun createEntry(year: Int, data: List<GusIndicatorPoint>): Entry = Entry(
+        data = data,
+        storedAt = currentTimeProvider.instant(),
+        complete = data.isComplete(year)
+    )
 
     private fun List<GusIndicatorPoint>.isComplete(year: Int): Boolean =
         filter { it.year == year }
