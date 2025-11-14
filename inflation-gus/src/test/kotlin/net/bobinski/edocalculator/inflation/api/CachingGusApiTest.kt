@@ -24,7 +24,12 @@ class CachingGusApiTest {
                 key(year) to { pts(year, 12) }
             )
         )
-        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            prefetchOnInit = false
+        )
 
         val a = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         val b = api.fetchYearInflation(GusAttribute.MONTHLY, year)
@@ -39,6 +44,33 @@ class CachingGusApiTest {
     }
 
     @Test
+    fun `warm up preloads configured range`() = runTest {
+        val time = MutableCurrentTimeProvider(fixedNow(2012, month = 2, day = 1))
+        val warmupRange = MIN_SUPPORTED_YEAR..time.yearMonth().year
+        val responses = mutableMapOf<Pair<GusAttribute, Int>, () -> List<GusIndicatorPoint>>().apply {
+            for (attribute in GusAttribute.values()) {
+                for (year in warmupRange) {
+                    this[attribute to year] = { pts(year, 12) }
+                }
+            }
+        }
+        val delegate = CountingGusApi(responses = responses)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes
+        )
+        api.awaitWarmup()
+
+        val expectedCalls = warmupRange.count() * GusAttribute.entries.size
+        assertEquals(expectedCalls, delegate.calls.values.sum())
+
+        val data = api.fetchYearInflation(GusAttribute.MONTHLY, warmupRange.first)
+        assertEquals(12, data.size)
+        assertEquals(expectedCalls, delegate.calls.values.sum())
+    }
+
+    @Test
     fun `current year keeps cached data while expected months satisfied`() = runTest {
         val year = 2025
         val time = MutableCurrentTimeProvider(fixedNow(year, month = 8, day = 20))
@@ -47,7 +79,12 @@ class CachingGusApiTest {
                 key(year) to { pts(year, 7, base = "100.0") }
             )
         )
-        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 5.minutes)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 5.minutes,
+            prefetchOnInit = false
+        )
 
         val a = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(1, delegate.calls.getValue(key(year)))
@@ -73,7 +110,12 @@ class CachingGusApiTest {
                 }
             )
         )
-        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.hours)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.hours,
+            prefetchOnInit = false
+        )
 
         val first = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(1, delegate.calls.getValue(key(year)))
@@ -101,7 +143,12 @@ class CachingGusApiTest {
                 key(year) to { pts(year, 9, "100.0") }
             )
         )
-        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            prefetchOnInit = false
+        )
 
         val first = api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(1, delegate.calls.getValue(key(year)))
@@ -124,7 +171,12 @@ class CachingGusApiTest {
                 key(year) to { pts(year, 9, "100.0") }
             )
         )
-        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            prefetchOnInit = false
+        )
 
         api.fetchYearInflation(GusAttribute.MONTHLY, year)
         assertEquals(1, delegate.calls.getValue(key(year)))
@@ -147,7 +199,12 @@ class CachingGusApiTest {
                 key(cur) to { pts(cur, 9, "100.0") }
             )
         )
-        val api = CachingGusApi(delegate = delegate, currentTimeProvider = time, ttl = 1.minutes)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            prefetchOnInit = false
+        )
 
         api.fetchYearInflation(GusAttribute.MONTHLY, past)
         api.fetchYearInflation(GusAttribute.MONTHLY, cur)

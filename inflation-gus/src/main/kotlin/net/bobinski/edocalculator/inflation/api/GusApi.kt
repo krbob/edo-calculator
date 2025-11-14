@@ -11,6 +11,8 @@ import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import kotlin.time.Duration.Companion.milliseconds
 
+internal const val MIN_SUPPORTED_YEAR = 2010
+
 internal interface GusApi {
     suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint>
 }
@@ -88,7 +90,6 @@ internal class GusApiImpl(
     companion object {
         private const val BASE_URL = "https://api-sdp.stat.gov.pl"
         private const val LANG = "pl"
-        private const val MIN_SUPPORTED_YEAR = 2010
         private const val EXPECTED_MONTHS = 12
     }
 }
