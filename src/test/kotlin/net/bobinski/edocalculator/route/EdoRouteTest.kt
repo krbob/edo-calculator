@@ -29,6 +29,7 @@ import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import java.math.BigDecimal
+import java.nio.channels.UnresolvedAddressException
 
 class EdoRouteTest {
 
@@ -343,6 +344,29 @@ class EdoRouteTest {
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
             assertEquals("Missing CPI", body["error"])
+        }
+    }
+
+    @Test
+    fun `responds with service unavailable when CPI provider cannot be reached`() {
+        val useCase = mockk<CalculateEdoValueUseCase>()
+        coEvery { useCase.invoke(any(), any(), any(), any(), any()) } throws UnresolvedAddressException()
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+            }
+
+            assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("Unable to reach CPI provider.", body["error"])
         }
     }
 

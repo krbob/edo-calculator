@@ -25,6 +25,7 @@ import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import java.math.BigDecimal
+import java.nio.channels.UnresolvedAddressException
 
 class InflationRouteTest {
 
@@ -142,6 +143,27 @@ class InflationRouteTest {
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
             assertEquals("No CPI data", body["error"])
+        }
+    }
+
+    @Test
+    fun `responds with service unavailable when CPI provider cannot be reached`() {
+        val useCase = mockk<CalculateCumulativeInflationUseCase>()
+
+        testApplication {
+            configureApp(useCase)
+
+            coEvery { useCase.invoke(any()) } throws UnresolvedAddressException()
+
+            val response = client.get("/inflation/since") {
+                parameter("year", "2024")
+                parameter("month", "6")
+            }
+
+            assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("Unable to reach CPI provider.", body["error"])
         }
     }
 
