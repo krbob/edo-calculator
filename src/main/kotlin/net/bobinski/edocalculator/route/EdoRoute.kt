@@ -15,6 +15,7 @@ import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoValueUseCase
 import org.koin.ktor.ext.inject
 import java.math.BigDecimal
+import java.nio.channels.UnresolvedAddressException
 
 fun Route.edoRoute() {
     val calculateEdoValueUseCase: CalculateEdoValueUseCase by inject()
@@ -65,6 +66,9 @@ private suspend fun ApplicationCall.respondWithEdoValue(
             principal = principal,
             asOf = asOf
         )
+    } catch (e: UnresolvedAddressException) {
+        respondError(HttpStatusCode.ServiceUnavailable, "Unable to reach CPI provider.")
+        return
     } catch (e: IllegalArgumentException) {
         respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
         return

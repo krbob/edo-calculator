@@ -11,6 +11,7 @@ import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUseCase
 import org.koin.ktor.ext.inject
 import java.math.BigDecimal
+import java.nio.channels.UnresolvedAddressException
 
 fun Route.inflationRoute() {
     val calculateCumulativeInflationUseCase: CalculateCumulativeInflationUseCase by inject()
@@ -36,6 +37,9 @@ fun Route.inflationRoute() {
 
         val result = try {
             calculateCumulativeInflationUseCase(start)
+        } catch (e: UnresolvedAddressException) {
+            call.respondError(HttpStatusCode.ServiceUnavailable, "Unable to reach CPI provider.")
+            return@get
         } catch (e: IllegalArgumentException) {
             call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
             return@get
@@ -86,6 +90,9 @@ fun Route.inflationRoute() {
 
         val result = try {
             calculateCumulativeInflationUseCase(start, endExclusive)
+        } catch (e: UnresolvedAddressException) {
+            call.respondError(HttpStatusCode.ServiceUnavailable, "Unable to reach CPI provider.")
+            return@get
         } catch (e: IllegalArgumentException) {
             call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
             return@get
