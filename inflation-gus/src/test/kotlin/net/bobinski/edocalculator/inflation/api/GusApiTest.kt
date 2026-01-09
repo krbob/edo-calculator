@@ -102,6 +102,38 @@ class GusApiTest : KoinTest {
     }
 
     @Test
+    fun `previous year with 11 months during January is accepted`() = runTest {
+        val previousYear = 2025
+        val client = http {
+            respond(
+                partialPayloadForYear(previousYear, 11), HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2026, 1, 9)))
+
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, previousYear)
+
+        assertEquals(11, points.size)
+    }
+
+    @Test
+    fun `previous year with 11 months after January throws MissingCpiDataException`() = runTest {
+        val previousYear = 2025
+        val client = http {
+            respond(
+                partialPayloadForYear(previousYear, 11), HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2026, 2, 1)))
+
+        assertFailsWith<MissingCpiDataException> {
+            api.fetchYearInflation(GusAttribute.MONTHLY, previousYear)
+        }
+    }
+
+    @Test
     fun `past year with complete data passes`() = runTest {
         val client = http {
             respond(
@@ -208,5 +240,10 @@ private fun payloadForYear(year: Int): String = """
 
 private fun fullPayloadForYear(year: Int): String =
     (1..12).joinToString(prefix = "[", postfix = "]", separator = ",") { i ->
+        """{"id-daty": $year, "id-okres": ${240 + i}, "wartosc": ${100 + i / 10.0}}"""
+    }
+
+private fun partialPayloadForYear(year: Int, months: Int): String =
+    (1..months).joinToString(prefix = "[", postfix = "]", separator = ",") { i ->
         """{"id-daty": $year, "id-okres": ${240 + i}, "wartosc": ${100 + i / 10.0}}"""
     }

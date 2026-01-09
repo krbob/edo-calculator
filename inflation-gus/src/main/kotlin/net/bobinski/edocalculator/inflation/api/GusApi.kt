@@ -5,6 +5,7 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.datetime.number
 import net.bobinski.edocalculator.client.utils.RateLimiter
 import net.bobinski.edocalculator.client.utils.RetryTooManyRequests
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
@@ -63,6 +64,7 @@ internal class GusApiImpl(
 
     private fun List<GusIndicatorPoint>.ensureCompleteness(year: Int) {
         if (year == currentYear()) return
+        if (isAllowedIncompletePreviousYear(year)) return
         if (size != EXPECTED_MONTHS) {
             throw MissingCpiDataException.forIncompleteYear(
                 year = year,
@@ -70,6 +72,14 @@ internal class GusApiImpl(
                 actual = size
             )
         }
+    }
+
+    private fun List<GusIndicatorPoint>.isAllowedIncompletePreviousYear(year: Int): Boolean {
+        val now = currentTimeProvider.localDate()
+        val isPreviousYear = year == now.year - 1
+        if (!isPreviousYear) return false
+        if (now.month.number != GRACE_PERIOD_MONTH) return false
+        return size == EXPECTED_MONTHS - 1
     }
 
     private fun List<GusIndicatorPoint>.ensureNoGaps(year: Int) {
@@ -91,6 +101,7 @@ internal class GusApiImpl(
         private const val BASE_URL = "https://api-sdp.stat.gov.pl"
         private const val LANG = "pl"
         private const val EXPECTED_MONTHS = 12
+        private const val GRACE_PERIOD_MONTH = 1
     }
 }
 
