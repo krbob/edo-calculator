@@ -9,10 +9,8 @@ import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 internal class CachingGusApi(
     private val delegate: GusApi,
     private val currentTimeProvider: CurrentTimeProvider,

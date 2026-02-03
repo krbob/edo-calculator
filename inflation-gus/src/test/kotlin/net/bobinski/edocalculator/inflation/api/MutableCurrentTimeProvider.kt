@@ -3,10 +3,8 @@ package net.bobinski.edocalculator.inflation.api
 import kotlinx.datetime.*
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 class MutableCurrentTimeProvider(start: Instant) : CurrentTimeProvider {
     private var _now = start
     override fun instant(): Instant = _now
@@ -24,6 +22,5 @@ class MutableCurrentTimeProvider(start: Instant) : CurrentTimeProvider {
     }
 }
 
-@OptIn(ExperimentalTime::class)
 fun fixedNow(year: Int, month: Int = 6, day: Int = 15): Instant =
     LocalDateTime(year, month, day, 12, 0).toInstant(TimeZone.UTC)

@@ -19,9 +19,7 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import java.math.BigDecimal
 import kotlin.test.assertFailsWith
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 class GusApiTest : KoinTest {
 
     @BeforeEach
