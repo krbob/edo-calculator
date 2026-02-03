@@ -54,6 +54,17 @@ class GusApiTest : KoinTest {
     }
 
     @Test
+    fun `404 for current year returns empty list`() = runTest {
+        val year = 2026
+        val client = http { respond("", HttpStatusCode.NotFound) }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year, 2, 3)))
+
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+
+        assertEquals(0, points.size)
+    }
+
+    @Test
     fun `request uses provided attribute id`() = runTest {
         val attribute = GusAttribute.ANNUAL
         var captured: String? = null
