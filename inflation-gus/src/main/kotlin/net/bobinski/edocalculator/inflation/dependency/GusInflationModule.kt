@@ -8,9 +8,7 @@ import net.bobinski.edocalculator.inflation.api.GusApiImpl
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 val GusInflationModule = module {
     single<GusApi>(named("raw")) { GusApiImpl(client = get(), currentTimeProvider = get()) }
     single<GusApi>(createdAtStart = true) { CachingGusApi(delegate = get(named("raw")), currentTimeProvider = get()) }

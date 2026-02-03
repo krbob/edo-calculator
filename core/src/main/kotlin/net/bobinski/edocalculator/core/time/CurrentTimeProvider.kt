@@ -2,17 +2,14 @@ package net.bobinski.edocalculator.core.time
 
 import kotlinx.datetime.*
 import kotlin.time.Clock
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 interface CurrentTimeProvider {
     fun instant(): Instant
     fun yearMonth(): YearMonth
     fun localDate(): LocalDate
 }
 
-@OptIn(ExperimentalTime::class)
 internal class SystemCurrentTimeProvider(
     private val timeZone: TimeZone = TimeZone.currentSystemDefault()
 ) : CurrentTimeProvider {

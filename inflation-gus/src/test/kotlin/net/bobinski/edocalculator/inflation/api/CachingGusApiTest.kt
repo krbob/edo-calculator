@@ -10,9 +10,7 @@ import java.math.BigDecimal
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.ExperimentalTime
 
-@OptIn(ExperimentalTime::class)
 class CachingGusApiTest {
 
     @Test

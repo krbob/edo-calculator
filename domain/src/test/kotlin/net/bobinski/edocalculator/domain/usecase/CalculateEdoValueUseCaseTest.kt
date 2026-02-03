@@ -13,7 +13,6 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.math.BigDecimal
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 class CalculateEdoValueUseCaseTest {
@@ -197,7 +196,6 @@ class CalculateEdoValueUseCaseTest {
         }
     }
 
-    @OptIn(ExperimentalTime::class)
     private class FakeCurrentTimeProvider(
         private val date: LocalDate
     ) : CurrentTimeProvider {
