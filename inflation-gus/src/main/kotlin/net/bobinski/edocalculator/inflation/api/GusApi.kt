@@ -30,12 +30,19 @@ internal class GusApiImpl(
 
         return limiter.limit {
             retry.execute {
-                val response: List<GusIndicatorPoint> = client.get {
-                    url(buildEndpoint(attribute, year))
-                    expectSuccess = true
-                }.body()
+                try {
+                    val response: List<GusIndicatorPoint> = client.get {
+                        url(buildEndpoint(attribute, year))
+                        expectSuccess = true
+                    }.body()
 
-                validateAndNormalize(response, year)
+                    validateAndNormalize(response, year)
+                } catch (e: ClientRequestException) {
+                    if (e.response.status == HttpStatusCode.NotFound) {
+                        return@execute validateAndNormalize(emptyList(), year)
+                    }
+                    throw e
+                }
             }
         }
     }
