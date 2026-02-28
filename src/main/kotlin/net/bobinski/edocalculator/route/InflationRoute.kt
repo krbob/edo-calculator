@@ -1,55 +1,30 @@
 package net.bobinski.edocalculator.route
 
 import io.ktor.http.*
+import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.YearMonth
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUseCase
 import org.koin.ktor.ext.inject
 import java.math.BigDecimal
-import java.nio.channels.UnresolvedAddressException
 
 fun Route.inflationRoute() {
     val calculateCumulativeInflationUseCase: CalculateCumulativeInflationUseCase by inject()
 
     get("/inflation/since") {
-        val month = call.request.queryParameters["month"]?.toIntOrNull()
-        val year = call.request.queryParameters["year"]?.toIntOrNull()
+        val start = call.parseYearMonth(
+            yearParam = "year",
+            monthParam = "month",
+            missingMessage = "Query parameters 'month' and 'year' must be integers.",
+            invalidMessage = "Invalid month or year value."
+        ) ?: return@get
 
-        if (month == null || year == null) {
-            call.respondError(
-                HttpStatusCode.BadRequest,
-                "Query parameters 'month' and 'year' must be integers."
-            )
-            return@get
-        }
-
-        val start = try {
-            YearMonth(year, month)
-        } catch (_: IllegalArgumentException) {
-            call.respondError(HttpStatusCode.BadRequest, "Invalid month or year value.")
-            return@get
-        }
-
-        val result = try {
+        val result = call.handleUseCaseCall {
             calculateCumulativeInflationUseCase(start)
-        } catch (e: UnresolvedAddressException) {
-            call.respondError(HttpStatusCode.ServiceUnavailable, "Unable to reach CPI provider.")
-            return@get
-        } catch (e: IllegalArgumentException) {
-            call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
-            return@get
-        } catch (e: MissingCpiDataException) {
-            call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
-            return@get
-        } catch (e: Exception) {
-            call.application.log.error("Unexpected error on /inflation", e)
-            call.respondError(HttpStatusCode.InternalServerError, "Unexpected error occurred.")
-            return@get
-        }
+        } ?: return@get
 
         call.respond(
             InflationResponse(
@@ -61,49 +36,23 @@ fun Route.inflationRoute() {
     }
 
     get("/inflation/between") {
-        val startMonth = call.request.queryParameters["startMonth"]?.toIntOrNull()
-        val startYear = call.request.queryParameters["startYear"]?.toIntOrNull()
-        val endMonth = call.request.queryParameters["endMonth"]?.toIntOrNull()
-        val endYear = call.request.queryParameters["endYear"]?.toIntOrNull()
+        val start = call.parseYearMonth(
+            yearParam = "startYear",
+            monthParam = "startMonth",
+            missingMessage = "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
+            invalidMessage = "Invalid start month or year value."
+        ) ?: return@get
 
-        if (startMonth == null || startYear == null || endMonth == null || endYear == null) {
-            call.respondError(
-                HttpStatusCode.BadRequest,
-                "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers."
-            )
-            return@get
-        }
+        val endExclusive = call.parseYearMonth(
+            yearParam = "endYear",
+            monthParam = "endMonth",
+            missingMessage = "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
+            invalidMessage = "Invalid end month or year value."
+        ) ?: return@get
 
-        val start = try {
-            YearMonth(startYear, startMonth)
-        } catch (_: IllegalArgumentException) {
-            call.respondError(HttpStatusCode.BadRequest, "Invalid start month or year value.")
-            return@get
-        }
-
-        val endExclusive = try {
-            YearMonth(endYear, endMonth)
-        } catch (_: IllegalArgumentException) {
-            call.respondError(HttpStatusCode.BadRequest, "Invalid end month or year value.")
-            return@get
-        }
-
-        val result = try {
+        val result = call.handleUseCaseCall {
             calculateCumulativeInflationUseCase(start, endExclusive)
-        } catch (e: UnresolvedAddressException) {
-            call.respondError(HttpStatusCode.ServiceUnavailable, "Unable to reach CPI provider.")
-            return@get
-        } catch (e: IllegalArgumentException) {
-            call.respondError(HttpStatusCode.BadRequest, e.message ?: "Invalid request parameters.")
-            return@get
-        } catch (e: MissingCpiDataException) {
-            call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
-            return@get
-        } catch (e: Exception) {
-            call.application.log.error("Unexpected error on /inflation", e)
-            call.respondError(HttpStatusCode.InternalServerError, "Unexpected error occurred.")
-            return@get
-        }
+        } ?: return@get
 
         call.respond(
             InflationResponse(
@@ -121,3 +70,25 @@ data class InflationResponse(
     val until: String,
     @Contextual val multiplier: BigDecimal
 )
+
+private suspend fun ApplicationCall.parseYearMonth(
+    yearParam: String,
+    monthParam: String,
+    missingMessage: String,
+    invalidMessage: String
+): YearMonth? {
+    val year = request.queryParameters[yearParam]?.toIntOrNull()
+    val month = request.queryParameters[monthParam]?.toIntOrNull()
+
+    if (year == null || month == null) {
+        respondError(HttpStatusCode.BadRequest, missingMessage)
+        return null
+    }
+
+    return try {
+        YearMonth(year, month)
+    } catch (_: IllegalArgumentException) {
+        respondError(HttpStatusCode.BadRequest, invalidMessage)
+        null
+    }
+}
