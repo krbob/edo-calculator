@@ -1,0 +1,21 @@
+exceptions:
+  TooGenericExceptionCaught:
+    excludes:
+      - "**/route/**"
+      - "**/CachingGusApi.kt"
+
+style:
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreAnnotation: true
+    ignoreHashCodeFunction: true
+    ignoreEnums: true
+    ignoreRanges: true
+    ignoreNumbers:
+      - "-1"
+      - "0"
+      - "1"
+      - "2"
+      - "12"
+      - "100"
+      - "500"

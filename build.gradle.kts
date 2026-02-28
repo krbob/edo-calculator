@@ -2,6 +2,14 @@ plugins {
     alias(libs.plugins.kotlin.jvm)
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.plugin.serialization)
+    alias(libs.plugins.detekt)
+}
+
+allprojects {
+    apply(plugin = "dev.detekt")
+    configure<dev.detekt.gradle.extensions.DetektExtension> {
+        config.from(rootProject.files("detekt.yml"))
+    }
 }
 
 application {
