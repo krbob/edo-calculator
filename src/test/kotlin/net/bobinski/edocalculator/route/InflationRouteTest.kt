@@ -184,7 +184,7 @@ class InflationRouteTest {
             assertEquals(HttpStatusCode.InternalServerError, response.status)
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("boom", body["error"])
+            assertEquals("Unexpected error occurred.", body["error"])
         }
     }
 
@@ -334,7 +334,7 @@ class InflationRouteTest {
             assertEquals(HttpStatusCode.InternalServerError, response.status)
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("boom", body["error"])
+            assertEquals("Unexpected error occurred.", body["error"])
         }
     }
 

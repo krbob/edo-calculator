@@ -76,7 +76,8 @@ private suspend fun ApplicationCall.respondWithEdoValue(
         respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
         return
     } catch (e: Exception) {
-        respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
+        application.log.error("Unexpected error on /edo", e)
+        respondError(HttpStatusCode.InternalServerError, "Unexpected error occurred.")
         return
     }
 
