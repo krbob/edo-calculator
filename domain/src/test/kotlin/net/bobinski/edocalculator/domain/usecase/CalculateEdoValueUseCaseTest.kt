@@ -184,6 +184,52 @@ class CalculateEdoValueUseCaseTest {
         assertEquals(0, result.edoValue.periods.single().daysElapsed)
     }
 
+    @Test
+    fun `throws when principal is negative`() {
+        val inflationProvider = FakeInflationProvider(emptyMap())
+        val currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = inflationProvider,
+            currentTimeProvider = currentTimeProvider
+        )
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(
+                    purchaseDate = LocalDate(2023, 1, 1),
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("-1")
+                )
+            }
+        }
+
+        assertEquals("Principal must not be negative.", exception.message)
+    }
+
+    @Test
+    fun `throws when first period rate is negative`() {
+        val inflationProvider = FakeInflationProvider(emptyMap())
+        val currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = inflationProvider,
+            currentTimeProvider = currentTimeProvider
+        )
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(
+                    purchaseDate = LocalDate(2023, 1, 1),
+                    firstPeriodRate = BigDecimal("-0.01"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100")
+                )
+            }
+        }
+
+        assertEquals("First period rate must not be negative.", exception.message)
+    }
+
     private class FakeInflationProvider(
         private val yearlyMultipliers: Map<YearMonth, BigDecimal>
     ) : InflationProvider {
