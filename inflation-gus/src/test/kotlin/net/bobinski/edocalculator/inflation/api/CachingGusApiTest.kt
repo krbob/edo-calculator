@@ -216,6 +216,42 @@ class CachingGusApiTest {
         assertEquals(1, delegate.calls.getValue(key(past)))
         assertEquals(2, delegate.calls.getValue(key(cur)))
     }
+    @Test
+    fun `warmup continues after failure for one year`() = runTest {
+        val time = MutableCurrentTimeProvider(fixedNow(2012, month = 2, day = 1))
+        val warmupRange = MIN_SUPPORTED_YEAR..time.yearMonth().year
+        val failYear = 2011
+        val responses = mutableMapOf<Pair<GusAttribute, Int>, () -> List<GusIndicatorPoint>>().apply {
+            for (attribute in GusAttribute.values()) {
+                for (year in warmupRange) {
+                    this[attribute to year] = { pts(year, 12) }
+                }
+            }
+        }
+        val delegate = CountingGusApi(responses = responses)
+        delegate.throwOn += GusAttribute.MONTHLY to failYear
+
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.hours
+        )
+        api.awaitWarmup()
+
+        // Years other than failYear should be cached
+        for (year in warmupRange) {
+            if (year == failYear) continue
+            val data = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+            assertEquals(12, data.size)
+            assertEquals(1, delegate.calls.getValue(key(year)))
+        }
+
+        // Failed year should not be cached — fetching it should call the delegate again
+        delegate.throwOn -= GusAttribute.MONTHLY to failYear
+        val recovered = api.fetchYearInflation(GusAttribute.MONTHLY, failYear)
+        assertEquals(12, recovered.size)
+        assertEquals(2, delegate.calls.getValue(key(failYear)))
+    }
 }
 
 private class CountingGusApi(
