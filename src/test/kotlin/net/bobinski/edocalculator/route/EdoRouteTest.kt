@@ -17,7 +17,6 @@ import io.mockk.mockk
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import net.bobinski.edocalculator.core.dependency.CoreModule
-import net.bobinski.edocalculator.core.time.toIsoString
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
@@ -159,8 +158,8 @@ class EdoRouteTest {
         val asOf = LocalDate(2024, 6, 15)
         val period = EdoPeriodBreakdown(
             index = 1,
-            startDate = purchaseDate.toIsoString(),
-            endDate = LocalDate(2024, 1, 1).toIsoString(),
+            startDate = purchaseDate.toString(),
+            endDate = LocalDate(2024, 1, 1).toString(),
             daysInPeriod = 365,
             daysElapsed = 365,
             ratePercent = BigDecimal("7.25"),
@@ -207,8 +206,8 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<EdoResponse>(response.bodyAsText())
-            assertEquals(expectedResult.purchaseDate.toIsoString(), body.purchaseDate)
-            assertEquals(expectedResult.asOf.toIsoString(), body.asOf)
+            assertEquals(expectedResult.purchaseDate.toString(), body.purchaseDate)
+            assertEquals(expectedResult.asOf.toString(), body.asOf)
             assertEquals(expectedResult.firstPeriodRate, body.firstPeriodRate)
             assertEquals(expectedResult.margin, body.margin)
             assertEquals(expectedResult.principal, body.principal)
@@ -232,8 +231,8 @@ class EdoRouteTest {
         val asOf = LocalDate(2023, 6, 1)
         val period = EdoPeriodBreakdown(
             index = 1,
-            startDate = purchaseDate.toIsoString(),
-            endDate = LocalDate(2024, 1, 1).toIsoString(),
+            startDate = purchaseDate.toString(),
+            endDate = LocalDate(2024, 1, 1).toString(),
             daysInPeriod = 365,
             daysElapsed = 151,
             ratePercent = BigDecimal("7.25"),
@@ -283,8 +282,8 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<EdoResponse>(response.bodyAsText())
-            assertEquals(expectedResult.purchaseDate.toIsoString(), body.purchaseDate)
-            assertEquals(expectedResult.asOf.toIsoString(), body.asOf)
+            assertEquals(expectedResult.purchaseDate.toString(), body.purchaseDate)
+            assertEquals(expectedResult.asOf.toString(), body.asOf)
             assertEquals(expectedResult.firstPeriodRate, body.firstPeriodRate)
             assertEquals(expectedResult.margin, body.margin)
             assertEquals(expectedResult.principal, body.principal)

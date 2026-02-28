@@ -9,7 +9,6 @@ import io.ktor.server.routing.get
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import net.bobinski.edocalculator.core.time.toIsoString
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoValueUseCase
@@ -83,8 +82,8 @@ private suspend fun ApplicationCall.respondWithEdoValue(
 
     respond(
         EdoResponse(
-            purchaseDate = result.purchaseDate.toIsoString(),
-            asOf = result.asOf.toIsoString(),
+            purchaseDate = result.purchaseDate.toString(),
+            asOf = result.asOf.toString(),
             firstPeriodRate = result.firstPeriodRate,
             margin = result.margin,
             principal = result.principal,
