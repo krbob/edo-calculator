@@ -392,6 +392,74 @@ class EdoRouteTest {
         }
     }
 
+    @Test
+    fun `uses default principal of 100 when not specified`() {
+        val useCase = mockk<CalculateEdoValueUseCase>()
+        val purchaseDate = LocalDate(2023, 1, 1)
+        val asOf = LocalDate(2024, 6, 15)
+        val period = EdoPeriodBreakdown(
+            index = 1,
+            startDate = purchaseDate.toString(),
+            endDate = LocalDate(2024, 1, 1).toString(),
+            daysInPeriod = 365,
+            daysElapsed = 365,
+            ratePercent = BigDecimal("7.25"),
+            inflationPercent = null,
+            interestAccrued = BigDecimal("7.25"),
+            value = BigDecimal("107.25")
+        )
+        val expectedResult = CalculateEdoValueUseCase.Result(
+            purchaseDate = purchaseDate,
+            asOf = asOf,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("100"),
+            edoValue = EdoValue(
+                totalValue = BigDecimal("107.25"),
+                totalAccruedInterest = BigDecimal("7.25"),
+                periods = listOf(period)
+            )
+        )
+
+        coEvery {
+            useCase.invoke(
+                purchaseDate = purchaseDate,
+                firstPeriodRate = BigDecimal("7.25"),
+                margin = BigDecimal("1.25"),
+                principal = BigDecimal("100"),
+                asOf = null
+            )
+        } returns expectedResult
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+                // principal intentionally omitted
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<EdoResponse>(response.bodyAsText())
+            assertEquals(BigDecimal("100"), body.principal)
+            coVerify(exactly = 1) {
+                useCase.invoke(
+                    purchaseDate = purchaseDate,
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100"),
+                    asOf = null
+                )
+            }
+        }
+    }
+
     private fun ApplicationTestBuilder.configureApp(useCase: CalculateEdoValueUseCase) {
         application {
             install(Koin) {
