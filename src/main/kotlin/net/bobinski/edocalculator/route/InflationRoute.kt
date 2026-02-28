@@ -47,7 +47,8 @@ fun Route.inflationRoute() {
             call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
             return@get
         } catch (e: Exception) {
-            call.respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
+            call.application.log.error("Unexpected error on /inflation", e)
+            call.respondError(HttpStatusCode.InternalServerError, "Unexpected error occurred.")
             return@get
         }
 
@@ -100,7 +101,8 @@ fun Route.inflationRoute() {
             call.respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Missing CPI data.")
             return@get
         } catch (e: Exception) {
-            call.respondError(HttpStatusCode.InternalServerError, e.message ?: "Unexpected error occurred.")
+            call.application.log.error("Unexpected error on /inflation", e)
+            call.respondError(HttpStatusCode.InternalServerError, "Unexpected error occurred.")
             return@get
         }
 
