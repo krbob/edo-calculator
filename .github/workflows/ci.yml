@@ -32,23 +32,13 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '25'
 
-      - name: Cache Gradle
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Run unit tests
-        run: ./gradlew test --no-daemon
+        run: ./gradlew test
 
       - name: Derive local image tag
         id: meta
@@ -59,7 +49,7 @@ jobs:
       - name: Build local image
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
-        run: ./gradlew jibDockerBuild --no-daemon --image="$IMAGE"
+        run: ./gradlew jibDockerBuild --image="$IMAGE"
 
       - name: Run container
         env:
@@ -129,20 +119,10 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
-          java-version: '21'
+          java-version: '25'
 
-      - name: Cache Gradle
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
@@ -158,5 +138,5 @@ jobs:
           IMAGE="ghcr.io/${OWNER}/${REPO}"
           SHA_TAG="sha-$(git rev-parse --short HEAD)"
 
-          ./gradlew jib --no-daemon -Djib.to.image="${IMAGE}:${SHA_TAG}"
-          ./gradlew jib --no-daemon -Djib.to.image="${IMAGE}:latest"
+          ./gradlew jib -Djib.to.image="${IMAGE}:${SHA_TAG}"
+          ./gradlew jib -Djib.to.image="${IMAGE}:latest"
