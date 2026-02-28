@@ -6,6 +6,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.number
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
@@ -27,6 +28,7 @@ internal class CachingGusApi(
 
     private data class CacheKey(val attribute: GusAttribute, val year: Int)
 
+    private val logger = LoggerFactory.getLogger(CachingGusApi::class.java)
     private val cache = ConcurrentHashMap<CacheKey, Entry>()
     private val locks = ConcurrentHashMap<CacheKey, Mutex>()
     private val warmupJob: Job? = if (prefetchOnInit) {
@@ -63,9 +65,13 @@ internal class CachingGusApi(
     private suspend fun warmUpCache(years: IntRange) {
         for (attribute in GusAttribute.entries) {
             for (year in years) {
-                val data = delegate.fetchYearInflation(attribute, year)
-                val key = CacheKey(attribute, year)
-                cache[key] = createEntry(year, data)
+                runCatching { delegate.fetchYearInflation(attribute, year) }
+                    .onSuccess { data ->
+                        cache[CacheKey(attribute, year)] = createEntry(year, data)
+                    }
+                    .onFailure { e ->
+                        logger.warn("Warmup failed for {} year {}: {}", attribute, year, e.message)
+                    }
             }
         }
     }
