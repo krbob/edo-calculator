@@ -60,6 +60,15 @@ internal class GusInflationProvider internal constructor(private val api: GusApi
                 .toMap()
         }
 
+    /**
+     * Converts raw GUS indicator points into a month-keyed multiplier map.
+     *
+     * Month assignment relies on sorting by [GusIndicatorPoint.periodId]:
+     * the first entry after sorting is January, the second is February, etc.
+     * This works because GUS assigns consecutive, ascending periodIds where
+     * the sort order maps 1:1 to calendar months. [GusApi.fetchYearInflation]
+     * validates that there are no gaps in the periodId sequence.
+     */
     private fun Map<Int, List<GusIndicatorPoint>>.toMonthlyMultipliers(): Map<YearMonth, BigDecimal> {
         val result = mutableMapOf<YearMonth, BigDecimal>()
 
