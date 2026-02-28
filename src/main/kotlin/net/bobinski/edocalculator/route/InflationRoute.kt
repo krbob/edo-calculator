@@ -6,7 +6,6 @@ import io.ktor.server.routing.*
 import kotlinx.datetime.YearMonth
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
-import net.bobinski.edocalculator.core.time.toIsoString
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUseCase
 import org.koin.ktor.ext.inject
@@ -54,8 +53,8 @@ fun Route.inflationRoute() {
 
         call.respond(
             InflationResponse(
-                from = result.from.toIsoString(),
-                until = result.untilExclusive.toIsoString(),
+                from = result.from.toString(),
+                until = result.untilExclusive.toString(),
                 multiplier = result.multiplier
             )
         )
@@ -108,8 +107,8 @@ fun Route.inflationRoute() {
 
         call.respond(
             InflationResponse(
-                from = result.from.toIsoString(),
-                until = result.untilExclusive.toIsoString(),
+                from = result.from.toString(),
+                until = result.untilExclusive.toString(),
                 multiplier = result.multiplier
             )
         )

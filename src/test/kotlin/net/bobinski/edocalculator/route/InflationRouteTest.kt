@@ -15,7 +15,6 @@ import io.mockk.mockk
 import kotlinx.datetime.YearMonth
 import kotlinx.serialization.json.Json
 import net.bobinski.edocalculator.core.dependency.CoreModule
-import net.bobinski.edocalculator.core.time.toIsoString
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUseCase
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -97,8 +96,8 @@ class InflationRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<InflationResponse>(response.bodyAsText())
-            assertEquals(start.toIsoString(), body.from)
-            assertEquals(result.untilExclusive.toIsoString(), body.until)
+            assertEquals(start.toString(), body.from)
+            assertEquals(result.untilExclusive.toString(), body.until)
             assertEquals(result.multiplier, body.multiplier)
             coVerify(exactly = 1) { useCase.invoke(start) }
         }
@@ -256,8 +255,8 @@ class InflationRouteTest {
             assertEquals(HttpStatusCode.OK, response.status)
             val json = GlobalContext.get().get<Json>()
             val body = json.decodeFromString<InflationResponse>(response.bodyAsText())
-            assertEquals(start.toIsoString(), body.from)
-            assertEquals(endExclusive.toIsoString(), body.until)
+            assertEquals(start.toString(), body.from)
+            assertEquals(endExclusive.toString(), body.until)
             assertEquals(result.multiplier, body.multiplier)
             coVerify(exactly = 1) { useCase.invoke(start, endExclusive) }
         }
