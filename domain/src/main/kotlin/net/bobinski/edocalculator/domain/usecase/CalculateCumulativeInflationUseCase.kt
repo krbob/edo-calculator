@@ -26,11 +26,17 @@ class CalculateCumulativeInflationUseCase(
         }
 
         var resolvedEndExclusive = currentTimeProvider.yearMonth()
-        val multiplier = try {
-            inflationProvider.getInflationMultiplier(start, resolvedEndExclusive)
-        } catch (_: MissingCpiDataException) {
-            resolvedEndExclusive = resolvedEndExclusive.minusMonth()
-            inflationProvider.getInflationMultiplier(start, resolvedEndExclusive)
+        lateinit var multiplier: BigDecimal
+        while (resolvedEndExclusive > start) {
+            try {
+                multiplier = inflationProvider.getInflationMultiplier(start, resolvedEndExclusive)
+                break
+            } catch (_: MissingCpiDataException) {
+                resolvedEndExclusive = resolvedEndExclusive.minusMonth()
+            }
+        }
+        if (resolvedEndExclusive <= start) {
+            throw MissingCpiDataException.forMonth(start)
         }
 
         return Result(

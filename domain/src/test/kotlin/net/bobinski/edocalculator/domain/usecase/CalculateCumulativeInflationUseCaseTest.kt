@@ -63,6 +63,38 @@ class CalculateCumulativeInflationUseCaseTest {
     }
 
     @Test
+    fun `falls back multiple months until data is available`() = runTest {
+        val start = YearMonth(2020, 1)
+        val current = YearMonth(2026, 3)
+        val expected = YearMonth(2026, 1)
+        val multiplier = BigDecimal("1.500")
+
+        every { currentTimeProvider.yearMonth() } returns current
+        coEvery { inflationProvider.getInflationMultiplier(start, YearMonth(2026, 3)) } throws MissingCpiDataException.forMonth(YearMonth(2026, 3))
+        coEvery { inflationProvider.getInflationMultiplier(start, YearMonth(2026, 2)) } throws MissingCpiDataException.forMonth(YearMonth(2026, 2))
+        coEvery { inflationProvider.getInflationMultiplier(start, expected) } returns multiplier
+
+        val result = useCase(start)
+
+        assertEquals(start, result.from)
+        assertEquals(expected, result.untilExclusive)
+        assertEquals(multiplier, result.multiplier)
+    }
+
+    @Test
+    fun `throws when no data is available for any month after start`() = runTest {
+        val start = YearMonth(2024, 1)
+        val current = YearMonth(2024, 3)
+
+        every { currentTimeProvider.yearMonth() } returns current
+        coEvery { inflationProvider.getInflationMultiplier(start, any()) } throws MissingCpiDataException.forMonth(current)
+
+        assertThrows<MissingCpiDataException> {
+            useCase(start)
+        }
+    }
+
+    @Test
     fun `returns multiplier for explicit end when date range valid`() = runTest {
         val start = YearMonth(2022, 4)
         val endExclusive = YearMonth(2023, 7)
