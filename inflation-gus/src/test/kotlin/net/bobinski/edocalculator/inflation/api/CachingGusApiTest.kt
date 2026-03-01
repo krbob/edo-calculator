@@ -46,7 +46,7 @@ class CachingGusApiTest {
         val time = MutableCurrentTimeProvider(fixedNow(2012, month = 2, day = 1))
         val warmupRange = MIN_SUPPORTED_YEAR..time.yearMonth().year
         val responses = mutableMapOf<Pair<GusAttribute, Int>, () -> List<GusIndicatorPoint>>().apply {
-            for (attribute in GusAttribute.values()) {
+            for (attribute in GusAttribute.entries) {
                 for (year in warmupRange) {
                     this[attribute to year] = { pts(year, 12) }
                 }
@@ -222,7 +222,7 @@ class CachingGusApiTest {
         val warmupRange = MIN_SUPPORTED_YEAR..time.yearMonth().year
         val failYear = 2011
         val responses = mutableMapOf<Pair<GusAttribute, Int>, () -> List<GusIndicatorPoint>>().apply {
-            for (attribute in GusAttribute.values()) {
+            for (attribute in GusAttribute.entries) {
                 for (year in warmupRange) {
                     this[attribute to year] = { pts(year, 12) }
                 }
