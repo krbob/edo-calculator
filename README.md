@@ -10,6 +10,19 @@ Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarb
 2. Uruchom kontener: `docker run --rm -p 8080:8080 ghcr.io/krbob/edo-calculator:latest`.
 3. Serwer będzie dostępny pod adresem `http://localhost:8080`.
 
+Alternatywnie, możesz użyć Docker Compose:
+
+```yaml
+services:
+  edo-calculator:
+    image: ghcr.io/krbob/edo-calculator:latest
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+```
+
+Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up -d`.
+
 ## Konwencje odpowiedzi
 
 - Wszystkie endpointy zwracają `Content-Type: application/json` i korzystają z pretty-print.
