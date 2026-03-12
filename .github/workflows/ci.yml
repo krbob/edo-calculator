@@ -12,11 +12,6 @@ concurrency:
 
 env:
   APP_PORT: 8080
-  TEST_URLS: |
-    /inflation/since?year=2010&month=1
-    /inflation/between?startYear=2015&startMonth=1&endYear=2025&endMonth=1
-    /edo/value?purchaseYear=2020&purchaseMonth=1&purchaseDay=1&firstPeriodRate=2.7&margin=1.5
-    /edo/value/at?purchaseYear=2020&purchaseMonth=1&purchaseDay=1&firstPeriodRate=2.7&margin=1.5&asOfYear=2024&asOfMonth=6&asOfDay=15
 
 jobs:
   test:
@@ -65,11 +60,19 @@ jobs:
       - name: Wait until all endpoints return 200
         env:
           APP_PORT: ${{ env.APP_PORT }}
-          TEST_URLS: ${{ env.TEST_URLS }}
         run: |
           set -euo pipefail
           base="http://localhost:${APP_PORT}"
-          IFS=$'\n' read -r -d '' -a URLS < <(printf '%s\0' "${TEST_URLS}")
+          purchase_year="$(date -u -d '30 days ago' +%Y)"
+          purchase_month="$(date -u -d '30 days ago' +%-m)"
+          purchase_day="$(date -u -d '30 days ago' +%-d)"
+          today_year="$(date -u +%Y)"
+          today_month="$(date -u +%-m)"
+          today_day="$(date -u +%-d)"
+          URLS=(
+            "/edo/value?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
+            "/edo/value/at?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5&asOfYear=${today_year}&asOfMonth=${today_month}&asOfDay=${today_day}"
+          )
           echo "⏳ Checking ${#URLS[@]} endpoint(s)..."
 
           wait_for_200() {

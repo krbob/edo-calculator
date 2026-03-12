@@ -1,6 +1,5 @@
 package net.bobinski.edocalculator.client
 
-
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
@@ -22,11 +21,16 @@ internal class AppHttpClient {
             install(ContentNegotiation) {
                 json(json)
             }
+            install(HttpTimeout) {
+                connectTimeoutMillis = 5_000
+                requestTimeoutMillis = 10_000
+                socketTimeoutMillis = 10_000
+            }
             defaultRequest {
                 accept(ContentType.Application.Json)
             }
             install(HttpCache) {
-                val cacheFile = Files.createDirectories(Paths.get("/tmp/cache")).toFile()
+                val cacheFile = Files.createDirectories(Paths.get("/tmp", "edo-calculator", "http-cache")).toFile()
                 publicStorage(FileStorage(cacheFile))
             }
             install(Logging) {

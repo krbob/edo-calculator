@@ -40,17 +40,33 @@ class RetryTooManyRequestsTest {
         var attempt = 0
         val retry = RetryTooManyRequests(times = 3, baseDelay = 1.milliseconds)
 
-        val exception = assertThrows(ClientRequestException::class.java) {
+        val exception = assertThrows(ServerResponseException::class.java) {
             runBlocking {
                 retry.execute {
                     attempt++
-                    throw ClientRequestException(mockResponse(HttpStatusCode.ServiceUnavailable), "test")
+                    throw ServerResponseException(mockResponse(HttpStatusCode.ServiceUnavailable), "test")
                 }
             }
         }
 
         assertEquals(3, attempt)
         assertEquals(HttpStatusCode.ServiceUnavailable, exception.response.status)
+    }
+
+    @Test
+    fun `should retry on 500 and then succeed`() = runTest {
+        var attempt = 0
+        val retry = RetryTooManyRequests(times = 3, baseDelay = 1.milliseconds)
+
+        val result = retry.execute {
+            if (attempt++ < 1) {
+                throw ServerResponseException(mockResponse(HttpStatusCode.InternalServerError), "test")
+            }
+            "ok"
+        }
+
+        assertEquals("ok", result)
+        assertEquals(2, attempt)
     }
 
     @Test

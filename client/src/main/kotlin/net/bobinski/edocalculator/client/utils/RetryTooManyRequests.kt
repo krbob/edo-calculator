@@ -1,11 +1,13 @@
 package net.bobinski.edocalculator.client.utils
 
-import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ResponseException
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.delay
 import kotlin.math.pow
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class RetryTooManyRequests(
     private val times: Int = 3,
@@ -23,10 +25,12 @@ class RetryTooManyRequests(
         repeat(times) { attempt ->
             try {
                 return block()
-            } catch (e: ClientRequestException) {
+            } catch (e: ResponseException) {
                 if (e.shouldRetry()) {
-                    delay(calculateDelay(attempt))
                     last = e
+                    if (attempt < times - 1) {
+                        delay(e.calculateDelay(attempt))
+                    }
                 } else {
                     throw e
                 }
@@ -36,18 +40,16 @@ class RetryTooManyRequests(
         throw last ?: IllegalStateException("Retry failed after $times attempts")
     }
 
-    private fun ClientRequestException.shouldRetry(): Boolean {
-        return response.status in RETRIABLE_STATUS_CODES
+    private fun ResponseException.shouldRetry(): Boolean {
+        return response.status == HttpStatusCode.TooManyRequests ||
+            response.status.value in 500..599
     }
 
-    private fun calculateDelay(attempt: Int): Duration {
-        return baseDelay * 2.0.pow(attempt)
-    }
+    private fun ResponseException.calculateDelay(attempt: Int): Duration {
+        val retryAfter = response.headers[HttpHeaders.RetryAfter]
+            ?.toLongOrNull()
+            ?.seconds
 
-    private companion object {
-        private val RETRIABLE_STATUS_CODES = setOf(
-            HttpStatusCode.TooManyRequests,
-            HttpStatusCode.ServiceUnavailable
-        )
+        return retryAfter ?: baseDelay * 2.0.pow(attempt)
     }
 }

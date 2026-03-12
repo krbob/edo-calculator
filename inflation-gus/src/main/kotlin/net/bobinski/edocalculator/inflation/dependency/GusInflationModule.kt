@@ -11,6 +11,12 @@ import org.koin.dsl.module
 
 val GusInflationModule = module {
     single<GusApi>(named("raw")) { GusApiImpl(client = get(), currentTimeProvider = get()) }
-    single<GusApi>(createdAtStart = true) { CachingGusApi(delegate = get(named("raw")), currentTimeProvider = get()) }
+    single<GusApi>(createdAtStart = true) {
+        CachingGusApi(
+            delegate = get(named("raw")),
+            currentTimeProvider = get(),
+            prefetchOnInit = false
+        )
+    }
     single { GusInflationProvider(api = get()) } bind InflationProvider::class
 }

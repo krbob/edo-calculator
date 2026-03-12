@@ -100,6 +100,7 @@ class CalculateCumulativeInflationUseCaseTest {
         val endExclusive = YearMonth(2023, 7)
         val multiplier = BigDecimal("1.120")
 
+        every { currentTimeProvider.yearMonth() } returns YearMonth(2024, 6)
         coEvery { inflationProvider.getInflationMultiplier(start, endExclusive) } returns multiplier
 
         val result = useCase(start, endExclusive)
@@ -108,17 +109,58 @@ class CalculateCumulativeInflationUseCaseTest {
         assertEquals(endExclusive, result.untilExclusive)
         assertEquals(multiplier, result.multiplier)
         coVerify(exactly = 1) { inflationProvider.getInflationMultiplier(start, endExclusive) }
-        verify(exactly = 0) { currentTimeProvider.yearMonth() }
+        verify(exactly = 1) { currentTimeProvider.yearMonth() }
     }
 
     @Test
     fun `throws when explicit end is not after start`() {
         val start = YearMonth(2024, 5)
+        every { currentTimeProvider.yearMonth() } returns YearMonth(2024, 6)
 
         assertThrows<IllegalArgumentException> {
             runTest {
                 useCase(start, start)
             }
         }
+    }
+
+    @Test
+    fun `throws when start month is current month`() {
+        val start = YearMonth(2024, 6)
+        every { currentTimeProvider.yearMonth() } returns start
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(start)
+            }
+        }
+
+        assertEquals("Start month must be earlier than current month.", exception.message)
+    }
+
+    @Test
+    fun `throws when start month is in the future`() {
+        every { currentTimeProvider.yearMonth() } returns YearMonth(2024, 6)
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(YearMonth(2024, 7))
+            }
+        }
+
+        assertEquals("Start month must be earlier than current month.", exception.message)
+    }
+
+    @Test
+    fun `throws when explicit end month is in the future`() {
+        every { currentTimeProvider.yearMonth() } returns YearMonth(2024, 6)
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(YearMonth(2024, 4), YearMonth(2024, 7))
+            }
+        }
+
+        assertEquals("End month must not be in the future.", exception.message)
     }
 }

@@ -13,9 +13,18 @@ class CalculateCumulativeInflationUseCase(
 ) {
 
     suspend operator fun invoke(start: YearMonth, endExclusive: YearMonth? = null): Result {
+        val currentMonth = currentTimeProvider.yearMonth()
+
+        require(start < currentMonth) {
+            "Start month must be earlier than current month."
+        }
+
         if (endExclusive != null) {
             require(endExclusive > start) {
                 "End date must be after start date."
+            }
+            require(endExclusive <= currentMonth) {
+                "End month must not be in the future."
             }
             val multiplier = inflationProvider.getInflationMultiplier(start, endExclusive)
             return Result(
@@ -25,7 +34,7 @@ class CalculateCumulativeInflationUseCase(
             )
         }
 
-        var resolvedEndExclusive = currentTimeProvider.yearMonth()
+        var resolvedEndExclusive = currentMonth
         lateinit var multiplier: BigDecimal
         while (resolvedEndExclusive > start) {
             try {

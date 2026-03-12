@@ -44,6 +44,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
   | `principal`       | decimal  | nie      | nominał inwestycji w PLN (domyślnie `100.00`)          |
 
 > Jeśli nie przekażesz parametru `principal`, zostanie użyta wartość domyślna `100.00` PLN (dotyczy również końcówki `/edo/value/at`).
+> Jeśli przekażesz `principal`, musi to być poprawna liczba dziesiętna, w przeciwnym razie serwer zwróci `400 Bad Request`.
 
 #### Przykładowe zapytanie
 
@@ -223,6 +224,7 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
   | `month` | integer | tak      | miesiąc startowy (1–12) |
 
 > Pola `from` i `until` mają format `YYYY-MM`; `until` wskazuje miesiąc wyłączony z obliczeń (granica wyłączna).
+> Miesiąc startowy musi być wcześniejszy niż bieżący miesiąc kalendarzowy.
 #### Przykładowe zapytanie
 
 ```bash
@@ -251,6 +253,7 @@ curl "http://localhost:8080/inflation/since?year=2020&month=1"
   | `endMonth`   | integer | tak      | miesiąc końcowy (1–12)           |
 
 > `endMonth` i `endYear` wyznaczają pierwszy miesiąc wyłączony z obliczeń (granica wyłączna); mnożnik obejmuje miesiące do poprzedniego włącznie. Pola `from` i `until` mają format `YYYY-MM`.
+> `endMonth`/`endYear` muszą wskazywać miesiąc po `startMonth` oraz nie mogą wybiegać w przyszłość względem bieżącego miesiąca.
 #### Przykładowe zapytanie
 
 ```bash
@@ -270,7 +273,7 @@ curl "http://localhost:8080/inflation/between?startYear=2020&startMonth=1&endYea
 ## Obsługa błędów
 
 - W przypadku błędnych parametrów serwer zwraca kod `400 Bad Request`.
-- Brak danych CPI skutkuje `503 Service Unavailable`, a nieoczekiwane błędy `500 Internal Server Error`.
+- Brak danych CPI oraz chwilowa niedostępność dostawcy GUS skutkują `503 Service Unavailable`, a nieoczekiwane błędy `500 Internal Server Error`.
 - Wszystkie odpowiedzi błędów mają postać:
 
 ```json

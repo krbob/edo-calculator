@@ -5,11 +5,15 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.datetime.number
 import net.bobinski.edocalculator.client.utils.RateLimiter
 import net.bobinski.edocalculator.client.utils.RetryTooManyRequests
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
+import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
+import java.io.IOException
+import java.nio.channels.UnresolvedAddressException
 import kotlin.time.Duration.Companion.milliseconds
 
 internal const val MIN_SUPPORTED_YEAR = 2010
@@ -28,22 +32,38 @@ internal class GusApiImpl(
     override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
         require(year in MIN_SUPPORTED_YEAR..currentYear()) { "Unsupported year: $year" }
 
-        return limiter.limit {
-            retry.execute {
-                try {
-                    val response: List<GusIndicatorPoint> = client.get {
-                        url(buildEndpoint(attribute, year))
-                        expectSuccess = true
-                    }.body()
+        return try {
+            limiter.limit {
+                retry.execute {
+                    try {
+                        val response: List<GusIndicatorPoint> = client.get {
+                            url(buildEndpoint(attribute, year))
+                            expectSuccess = true
+                        }.body()
 
-                    validateAndNormalize(response, year)
-                } catch (e: ClientRequestException) {
-                    if (e.response.status == HttpStatusCode.NotFound) {
-                        return@execute validateAndNormalize(emptyList(), year)
+                        validateAndNormalize(response, year)
+                    } catch (e: ClientRequestException) {
+                        if (e.response.status == HttpStatusCode.NotFound) {
+                            return@execute validateAndNormalize(emptyList(), year)
+                        }
+                        throw e
                     }
-                    throw e
                 }
             }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: MissingCpiDataException) {
+            throw e
+        } catch (e: CpiProviderUnavailableException) {
+            throw e
+        } catch (e: UnresolvedAddressException) {
+            throw CpiProviderUnavailableException(cause = e)
+        } catch (e: HttpRequestTimeoutException) {
+            throw CpiProviderUnavailableException(cause = e)
+        } catch (e: IOException) {
+            throw CpiProviderUnavailableException(cause = e)
+        } catch (e: ResponseException) {
+            throw CpiProviderUnavailableException(cause = e)
         }
     }
 

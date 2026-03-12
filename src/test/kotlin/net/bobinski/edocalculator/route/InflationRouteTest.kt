@@ -15,6 +15,7 @@ import io.mockk.mockk
 import kotlinx.datetime.YearMonth
 import kotlinx.serialization.json.Json
 import net.bobinski.edocalculator.core.dependency.CoreModule
+import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUseCase
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -24,8 +25,6 @@ import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import java.math.BigDecimal
-import java.nio.channels.UnresolvedAddressException
-
 class InflationRouteTest {
 
     @Test
@@ -152,7 +151,7 @@ class InflationRouteTest {
         testApplication {
             configureApp(useCase)
 
-            coEvery { useCase.invoke(any()) } throws UnresolvedAddressException()
+            coEvery { useCase.invoke(any()) } throws CpiProviderUnavailableException()
 
             val response = client.get("/inflation/since") {
                 parameter("year", "2024")

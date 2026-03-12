@@ -17,6 +17,7 @@ import io.mockk.mockk
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 import net.bobinski.edocalculator.core.dependency.CoreModule
+import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
@@ -28,8 +29,6 @@ import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import java.math.BigDecimal
-import java.nio.channels.UnresolvedAddressException
-
 class EdoRouteTest {
 
     @Test
@@ -95,6 +94,30 @@ class EdoRouteTest {
                 "Query parameters 'firstPeriodRate' and 'margin' must be decimals.",
                 body["error"]
             )
+            coVerify { useCase wasNot Called }
+        }
+    }
+
+    @Test
+    fun `responds with bad request when principal is not a decimal`() {
+        val useCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+                parameter("principal", "abc")
+            }
+
+            val json = GlobalContext.get().get<Json>()
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("Query parameter 'principal' must be a decimal.", body["error"])
             coVerify { useCase wasNot Called }
         }
     }
@@ -349,7 +372,7 @@ class EdoRouteTest {
     @Test
     fun `responds with service unavailable when CPI provider cannot be reached`() {
         val useCase = mockk<CalculateEdoValueUseCase>()
-        coEvery { useCase.invoke(any(), any(), any(), any(), any()) } throws UnresolvedAddressException()
+        coEvery { useCase.invoke(any(), any(), any(), any(), any()) } throws CpiProviderUnavailableException()
 
         testApplication {
             configureApp(useCase)

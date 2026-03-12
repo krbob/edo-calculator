@@ -8,6 +8,7 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.test.runTest
 import net.bobinski.edocalculator.core.dependency.CoreModule
+import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -93,6 +94,40 @@ class GusApiTest : KoinTest {
 
         assertEquals(2, points.size)
         assertEquals(2, hits)
+    }
+
+    @Test
+    fun `503 then 200 is retried and succeeds`() = runTest {
+        var hits = 0
+        val client = http {
+            hits++
+            if (hits == 1) {
+                respond("unavailable", HttpStatusCode.ServiceUnavailable)
+            } else {
+                respond(
+                    payloadForYear(2015), HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015)))
+
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
+
+        assertEquals(2, points.size)
+        assertEquals(2, hits)
+    }
+
+    @Test
+    fun `persistent 503 is wrapped as provider unavailable`() = runTest {
+        val client = http {
+            respond("unavailable", HttpStatusCode.ServiceUnavailable)
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015)))
+
+        assertFailsWith<CpiProviderUnavailableException> {
+            api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
+        }
     }
 
     @Test

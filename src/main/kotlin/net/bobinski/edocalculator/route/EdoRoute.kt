@@ -45,7 +45,7 @@ private suspend fun ApplicationCall.respondWithEdoValue(
 ) {
     val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBigDecimalOrNull()
     val margin = request.queryParameters["margin"]?.toBigDecimalOrNull()
-    val principal = request.queryParameters["principal"]?.toBigDecimalOrNull() ?: BigDecimal(100)
+    val principal = parsePrincipal() ?: return
 
     if (firstPeriodRate == null || margin == null) {
         respondError(
@@ -75,6 +75,15 @@ private suspend fun ApplicationCall.respondWithEdoValue(
             edoValue = result.edoValue
         )
     )
+}
+
+private suspend fun ApplicationCall.parsePrincipal(): BigDecimal? {
+    val rawPrincipal = request.queryParameters["principal"] ?: return BigDecimal(100)
+
+    return rawPrincipal.toBigDecimalOrNull() ?: run {
+        respondError(HttpStatusCode.BadRequest, "Query parameter 'principal' must be a decimal.")
+        null
+    }
 }
 
 @Serializable
