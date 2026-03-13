@@ -21,6 +21,7 @@ import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
+import net.bobinski.edocalculator.domain.usecase.CalculateEdoHistoryUseCase
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoValueUseCase
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -483,12 +484,131 @@ class EdoRouteTest {
         }
     }
 
-    private fun ApplicationTestBuilder.configureApp(useCase: CalculateEdoValueUseCase) {
+    @Test
+    fun `responds with edo history when request is valid`() {
+        val valueUseCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+        val historyUseCase = mockk<CalculateEdoHistoryUseCase>()
+        val purchaseDate = LocalDate(2023, 1, 1)
+        val from = LocalDate(2023, 1, 2)
+        val until = LocalDate(2023, 1, 4)
+        val expectedResult = CalculateEdoHistoryUseCase.Result(
+            purchaseDate = purchaseDate,
+            from = from,
+            until = until,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("100.00"),
+            points = listOf(
+                CalculateEdoHistoryUseCase.HistoryPoint(
+                    date = from,
+                    totalValue = BigDecimal("100.25"),
+                    totalAccruedInterest = BigDecimal("0.25")
+                ),
+                CalculateEdoHistoryUseCase.HistoryPoint(
+                    date = LocalDate(2023, 1, 3),
+                    totalValue = BigDecimal("100.50"),
+                    totalAccruedInterest = BigDecimal("0.50")
+                ),
+                CalculateEdoHistoryUseCase.HistoryPoint(
+                    date = until,
+                    totalValue = BigDecimal("100.75"),
+                    totalAccruedInterest = BigDecimal("0.75")
+                )
+            )
+        )
+
+        coEvery {
+            historyUseCase.invoke(
+                purchaseDate = purchaseDate,
+                firstPeriodRate = BigDecimal("7.25"),
+                margin = BigDecimal("1.25"),
+                principal = BigDecimal("100"),
+                from = from,
+                to = until
+            )
+        } returns expectedResult
+
+        testApplication {
+            configureApp(valueUseCase, historyUseCase)
+
+            val response = client.get("/edo/history") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("fromYear", "2023")
+                parameter("fromMonth", "1")
+                parameter("fromDay", "2")
+                parameter("toYear", "2023")
+                parameter("toMonth", "1")
+                parameter("toDay", "4")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<EdoHistoryResponse>(response.bodyAsText())
+            assertEquals("2023-01-01", body.purchaseDate)
+            assertEquals("2023-01-02", body.from)
+            assertEquals("2023-01-04", body.until)
+            assertEquals(3, body.points.size)
+            assertEquals("2023-01-02", body.points.first().date)
+            assertEquals(BigDecimal("100.75"), body.points.last().totalValue)
+            coVerify(exactly = 1) {
+                historyUseCase.invoke(
+                    purchaseDate = purchaseDate,
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100"),
+                    from = from,
+                    to = until
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `responds with bad request when optional history date is partially provided`() {
+        val valueUseCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+        val historyUseCase = mockk<CalculateEdoHistoryUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(valueUseCase, historyUseCase)
+
+            val response = client.get("/edo/history") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("fromYear", "2023")
+                parameter("fromMonth", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+            }
+
+            val json = GlobalContext.get().get<Json>()
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals(
+                "Query parameters 'fromYear' and 'fromMonth' and 'fromDay' must be integers when provided.",
+                body["error"]
+            )
+            coVerify { historyUseCase wasNot Called }
+        }
+    }
+
+    private fun ApplicationTestBuilder.configureApp(
+        useCase: CalculateEdoValueUseCase,
+        historyUseCase: CalculateEdoHistoryUseCase = mockk(relaxed = true)
+    ) {
         application {
             install(Koin) {
                 modules(
                     CoreModule,
-                    module { single { useCase } }
+                    module {
+                        single { useCase }
+                        single { historyUseCase }
+                    }
                 )
             }
             val json: Json = get()

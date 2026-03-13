@@ -10,12 +10,14 @@ import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import net.bobinski.edocalculator.domain.edo.EdoValue
+import net.bobinski.edocalculator.domain.usecase.CalculateEdoHistoryUseCase
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoValueUseCase
 import org.koin.ktor.ext.inject
 import java.math.BigDecimal
 
 fun Route.edoRoute() {
     val calculateEdoValueUseCase: CalculateEdoValueUseCase by inject()
+    val calculateEdoHistoryUseCase: CalculateEdoHistoryUseCase by inject()
 
     get("/edo/value") {
         val purchaseDate = call.parsePurchaseDate() ?: return@get
@@ -34,6 +36,31 @@ fun Route.edoRoute() {
             purchaseDate = purchaseDate,
             asOf = asOfDate,
             calculateEdoValueUseCase = calculateEdoValueUseCase
+        )
+    }
+
+    get("/edo/history") {
+        val purchaseDate = call.parsePurchaseDate() ?: return@get
+        val fromDate = call.parseOptionalDate(
+            yearParam = "fromYear",
+            monthParam = "fromMonth",
+            dayParam = "fromDay",
+            missingMessage = "Query parameters 'fromYear' and 'fromMonth' and 'fromDay' must be integers when provided.",
+            invalidMessage = "Invalid from day, month or year value."
+        ) ?: return@get
+        val toDate = call.parseOptionalDate(
+            yearParam = "toYear",
+            monthParam = "toMonth",
+            dayParam = "toDay",
+            missingMessage = "Query parameters 'toYear' and 'toMonth' and 'toDay' must be integers when provided.",
+            invalidMessage = "Invalid to day, month or year value."
+        ) ?: return@get
+
+        call.respondWithEdoHistory(
+            purchaseDate = purchaseDate,
+            from = fromDate,
+            to = toDate,
+            calculateEdoHistoryUseCase = calculateEdoHistoryUseCase
         )
     }
 }
@@ -86,6 +113,54 @@ private suspend fun ApplicationCall.parsePrincipal(): BigDecimal? {
     }
 }
 
+private suspend fun ApplicationCall.respondWithEdoHistory(
+    purchaseDate: LocalDate,
+    from: LocalDate?,
+    to: LocalDate?,
+    calculateEdoHistoryUseCase: CalculateEdoHistoryUseCase
+) {
+    val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBigDecimalOrNull()
+    val margin = request.queryParameters["margin"]?.toBigDecimalOrNull()
+    val principal = parsePrincipal() ?: return
+
+    if (firstPeriodRate == null || margin == null) {
+        respondError(
+            HttpStatusCode.BadRequest,
+            "Query parameters 'firstPeriodRate' and 'margin' must be decimals."
+        )
+        return
+    }
+
+    val result = handleUseCaseCall {
+        calculateEdoHistoryUseCase(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = firstPeriodRate,
+            margin = margin,
+            principal = principal,
+            from = from,
+            to = to
+        )
+    } ?: return
+
+    respond(
+        EdoHistoryResponse(
+            purchaseDate = result.purchaseDate.toString(),
+            from = result.from.toString(),
+            until = result.until.toString(),
+            firstPeriodRate = result.firstPeriodRate,
+            margin = result.margin,
+            principal = result.principal,
+            points = result.points.map { point ->
+                EdoHistoryPointResponse(
+                    date = point.date.toString(),
+                    totalValue = point.totalValue,
+                    totalAccruedInterest = point.totalAccruedInterest
+                )
+            }
+        )
+    )
+}
+
 @Serializable
 data class EdoResponse(
     val purchaseDate: String,
@@ -94,6 +169,24 @@ data class EdoResponse(
     @Contextual val margin: BigDecimal,
     @Contextual val principal: BigDecimal,
     val edoValue: EdoValue
+)
+
+@Serializable
+data class EdoHistoryResponse(
+    val purchaseDate: String,
+    val from: String,
+    val until: String,
+    @Contextual val firstPeriodRate: BigDecimal,
+    @Contextual val margin: BigDecimal,
+    @Contextual val principal: BigDecimal,
+    val points: List<EdoHistoryPointResponse>
+)
+
+@Serializable
+data class EdoHistoryPointResponse(
+    val date: String,
+    @Contextual val totalValue: BigDecimal,
+    @Contextual val totalAccruedInterest: BigDecimal
 )
 
 private suspend fun ApplicationCall.parsePurchaseDate(): LocalDate? = parseDate(
@@ -111,6 +204,30 @@ private suspend fun ApplicationCall.parseAsOfDate(): LocalDate? = parseDate(
     missingMessage = "Query parameters 'asOfYear' and 'asOfMonth' and 'asOfDay' must be integers.",
     invalidMessage = "Invalid as-of day, month or year value."
 )
+
+private suspend fun ApplicationCall.parseOptionalDate(
+    yearParam: String,
+    monthParam: String,
+    dayParam: String,
+    missingMessage: String,
+    invalidMessage: String
+): LocalDate? {
+    val rawYear = request.queryParameters[yearParam]
+    val rawMonth = request.queryParameters[monthParam]
+    val rawDay = request.queryParameters[dayParam]
+
+    if (rawYear == null && rawMonth == null && rawDay == null) {
+        return null
+    }
+
+    return parseDate(
+        yearParam = yearParam,
+        monthParam = monthParam,
+        dayParam = dayParam,
+        missingMessage = missingMessage,
+        invalidMessage = invalidMessage
+    )
+}
 
 private suspend fun ApplicationCall.parseDate(
     yearParam: String,

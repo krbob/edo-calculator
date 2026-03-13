@@ -2,7 +2,7 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/krbob/edo-calculator/ci.yml)
 
-Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarbowych EDO oraz wskaźniki inflacyjne GUS. Poniżej znajdziesz opis wszystkich dostępnych endpointów (4), wymagane parametry oraz przykładowe odpowiedzi.
+Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarbowych EDO oraz wskaźniki inflacyjne GUS. Poniżej znajdziesz opis wszystkich dostępnych endpointów (5), wymagane parametry oraz przykładowe odpowiedzi.
 
 ## Uruchomienie
 
@@ -211,6 +211,58 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
             }
         ]
     }
+}
+```
+
+### GET `/edo/history`
+
+- **Opis:** zwraca dzienną historię wartości EDO dla wskazanego zakupu. Endpoint wykorzystuje tę samą logikę wyceny co `/edo/value` i `/edo/value/at`, ale generuje serię punktów dzień po dniu.
+- **Parametry zapytania:** wszystkie parametry z `/edo/value` oraz opcjonalnie:
+  | nazwa        | typ     | wymagane | opis                                                           |
+  |--------------|---------|----------|----------------------------------------------------------------|
+  | `fromYear`   | integer | nie      | rok początku zakresu historii                                  |
+  | `fromMonth`  | integer | nie      | miesiąc początku zakresu (1–12)                                |
+  | `fromDay`    | integer | nie      | dzień początku zakresu (1–31)                                  |
+  | `toYear`     | integer | nie      | rok końca zakresu historii                                     |
+  | `toMonth`    | integer | nie      | miesiąc końca zakresu (1–12)                                   |
+  | `toDay`      | integer | nie      | dzień końca zakresu (1–31)                                     |
+
+> Jeśli nie podasz `from*`, historia zaczyna się od dnia zakupu. Jeśli nie podasz `to*`, historia kończy się na bieżącej dacie systemowej.
+> Parametry `from*` i `to*` muszą być podane kompletnie (rok, miesiąc i dzień), jeśli chcesz ich użyć.
+
+#### Przykładowe zapytanie
+
+```bash
+curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&fromYear=2023&fromMonth=1&fromDay=2&toYear=2023&toMonth=1&toDay=4&firstPeriodRate=7.25&margin=1.25&principal=100"
+```
+
+#### Przykładowa odpowiedź
+
+```json
+{
+    "purchaseDate": "2023-01-01",
+    "from": "2023-01-02",
+    "until": "2023-01-04",
+    "firstPeriodRate": "7.25",
+    "margin": "1.25",
+    "principal": "100.00",
+    "points": [
+        {
+            "date": "2023-01-02",
+            "totalValue": "100.02",
+            "totalAccruedInterest": "0.02"
+        },
+        {
+            "date": "2023-01-03",
+            "totalValue": "100.04",
+            "totalAccruedInterest": "0.04"
+        },
+        {
+            "date": "2023-01-04",
+            "totalValue": "100.06",
+            "totalAccruedInterest": "0.06"
+        }
+    ]
 }
 ```
 
