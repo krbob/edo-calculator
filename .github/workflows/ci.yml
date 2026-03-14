@@ -72,6 +72,7 @@ jobs:
           URLS=(
             "/edo/value?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
             "/edo/value/at?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5&asOfYear=${today_year}&asOfMonth=${today_month}&asOfDay=${today_day}"
+            "/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
             "/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&fromYear=${purchase_year}&fromMonth=${purchase_month}&fromDay=${purchase_day}&toYear=${today_year}&toMonth=${today_month}&toDay=${today_day}&firstPeriodRate=2.7&margin=1.5"
           )
           echo "⏳ Checking ${#URLS[@]} endpoint(s)..."
@@ -127,6 +128,26 @@ jobs:
           echo "$response" | grep -q '"purchaseDate"'
           echo "$response" | grep -q '"points"'
           echo "$response" | grep -q '"totalValue"'
+
+      - name: Smoke test edo history payload without explicit range
+        env:
+          APP_PORT: ${{ env.APP_PORT }}
+        run: |
+          set -euo pipefail
+          base="http://localhost:${APP_PORT}"
+          purchase_year="$(date -u -d '30 days ago' +%Y)"
+          purchase_month="$(date -u -d '30 days ago' +%-m)"
+          purchase_day="$(date -u -d '30 days ago' +%-d)"
+
+          response="$(
+            curl -fsS \
+              "${base}/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
+          )"
+
+          echo "$response" | grep -q '"purchaseDate"'
+          echo "$response" | grep -q '"from"'
+          echo "$response" | grep -q '"until"'
+          echo "$response" | grep -q '"points"'
 
       - name: Clean up
         if: always()

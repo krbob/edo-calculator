@@ -569,6 +569,78 @@ class EdoRouteTest {
     }
 
     @Test
+    fun `responds with edo history when optional range is omitted`() {
+        val valueUseCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+        val historyUseCase = mockk<CalculateEdoHistoryUseCase>()
+        val purchaseDate = LocalDate(2023, 1, 1)
+        val until = LocalDate(2026, 3, 14)
+        val expectedResult = CalculateEdoHistoryUseCase.Result(
+            purchaseDate = purchaseDate,
+            from = purchaseDate,
+            until = until,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("100.00"),
+            points = listOf(
+                CalculateEdoHistoryUseCase.HistoryPoint(
+                    date = purchaseDate,
+                    totalValue = BigDecimal("100.00"),
+                    totalAccruedInterest = BigDecimal("0.00")
+                ),
+                CalculateEdoHistoryUseCase.HistoryPoint(
+                    date = until,
+                    totalValue = BigDecimal("123.46"),
+                    totalAccruedInterest = BigDecimal("23.46")
+                )
+            )
+        )
+
+        coEvery {
+            historyUseCase.invoke(
+                purchaseDate = purchaseDate,
+                firstPeriodRate = BigDecimal("7.25"),
+                margin = BigDecimal("1.25"),
+                principal = BigDecimal("100"),
+                from = null,
+                to = null
+            )
+        } returns expectedResult
+
+        testApplication {
+            configureApp(valueUseCase, historyUseCase)
+
+            val response = client.get("/edo/history") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+            }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+
+            val json = GlobalContext.get().get<Json>()
+            val body = json.decodeFromString<EdoHistoryResponse>(response.bodyAsText())
+            assertEquals("2023-01-01", body.purchaseDate)
+            assertEquals("2023-01-01", body.from)
+            assertEquals("2026-03-14", body.until)
+            assertEquals(2, body.points.size)
+            assertEquals("2023-01-01", body.points.first().date)
+            assertEquals(BigDecimal("123.46"), body.points.last().totalValue)
+            coVerify(exactly = 1) {
+                historyUseCase.invoke(
+                    purchaseDate = purchaseDate,
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100"),
+                    from = null,
+                    to = null
+                )
+            }
+        }
+    }
+
+    @Test
     fun `responds with bad request when optional history date is partially provided`() {
         val valueUseCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
         val historyUseCase = mockk<CalculateEdoHistoryUseCase>(relaxed = true)

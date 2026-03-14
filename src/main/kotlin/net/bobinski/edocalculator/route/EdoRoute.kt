@@ -41,20 +41,30 @@ fun Route.edoRoute() {
 
     get("/edo/history") {
         val purchaseDate = call.parsePurchaseDate() ?: return@get
-        val fromDate = call.parseOptionalDate(
-            yearParam = "fromYear",
-            monthParam = "fromMonth",
-            dayParam = "fromDay",
-            missingMessage = "Query parameters 'fromYear' and 'fromMonth' and 'fromDay' must be integers when provided.",
-            invalidMessage = "Invalid from day, month or year value."
-        ) ?: return@get
-        val toDate = call.parseOptionalDate(
-            yearParam = "toYear",
-            monthParam = "toMonth",
-            dayParam = "toDay",
-            missingMessage = "Query parameters 'toYear' and 'toMonth' and 'toDay' must be integers when provided.",
-            invalidMessage = "Invalid to day, month or year value."
-        ) ?: return@get
+        val fromDate = when (
+            val result = call.parseOptionalDate(
+                yearParam = "fromYear",
+                monthParam = "fromMonth",
+                dayParam = "fromDay",
+                missingMessage = "Query parameters 'fromYear' and 'fromMonth' and 'fromDay' must be integers when provided.",
+                invalidMessage = "Invalid from day, month or year value."
+            )
+        ) {
+            OptionalDateParseResult.Invalid -> return@get
+            is OptionalDateParseResult.Parsed -> result.value
+        }
+        val toDate = when (
+            val result = call.parseOptionalDate(
+                yearParam = "toYear",
+                monthParam = "toMonth",
+                dayParam = "toDay",
+                missingMessage = "Query parameters 'toYear' and 'toMonth' and 'toDay' must be integers when provided.",
+                invalidMessage = "Invalid to day, month or year value."
+            )
+        ) {
+            OptionalDateParseResult.Invalid -> return@get
+            is OptionalDateParseResult.Parsed -> result.value
+        }
 
         call.respondWithEdoHistory(
             purchaseDate = purchaseDate,
@@ -211,13 +221,13 @@ private suspend fun ApplicationCall.parseOptionalDate(
     dayParam: String,
     missingMessage: String,
     invalidMessage: String
-): LocalDate? {
+): OptionalDateParseResult {
     val rawYear = request.queryParameters[yearParam]
     val rawMonth = request.queryParameters[monthParam]
     val rawDay = request.queryParameters[dayParam]
 
     if (rawYear == null && rawMonth == null && rawDay == null) {
-        return null
+        return OptionalDateParseResult.Parsed(null)
     }
 
     return parseDate(
@@ -226,7 +236,12 @@ private suspend fun ApplicationCall.parseOptionalDate(
         dayParam = dayParam,
         missingMessage = missingMessage,
         invalidMessage = invalidMessage
-    )
+    )?.let { OptionalDateParseResult.Parsed(it) } ?: OptionalDateParseResult.Invalid
+}
+
+private sealed interface OptionalDateParseResult {
+    data object Invalid : OptionalDateParseResult
+    data class Parsed(val value: LocalDate?) : OptionalDateParseResult
 }
 
 private suspend fun ApplicationCall.parseDate(

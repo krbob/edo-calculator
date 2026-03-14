@@ -236,6 +236,10 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
 curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&fromYear=2023&fromMonth=1&fromDay=2&toYear=2023&toMonth=1&toDay=4&firstPeriodRate=7.25&margin=1.25&principal=100"
 ```
 
+```bash
+curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&firstPeriodRate=7.25&margin=1.25&principal=100"
+```
+
 #### Przykładowa odpowiedź
 
 ```json
