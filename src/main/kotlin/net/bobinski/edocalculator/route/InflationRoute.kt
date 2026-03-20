@@ -8,11 +8,13 @@ import kotlinx.datetime.YearMonth
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
 import net.bobinski.edocalculator.domain.usecase.CalculateCumulativeInflationUseCase
+import net.bobinski.edocalculator.domain.usecase.CalculateMonthlyInflationSeriesUseCase
 import org.koin.ktor.ext.inject
 import java.math.BigDecimal
 
 fun Route.inflationRoute() {
     val calculateCumulativeInflationUseCase: CalculateCumulativeInflationUseCase by inject()
+    val calculateMonthlyInflationSeriesUseCase: CalculateMonthlyInflationSeriesUseCase by inject()
 
     get("/inflation/since") {
         val start = call.parseYearMonth(
@@ -62,12 +64,58 @@ fun Route.inflationRoute() {
             )
         )
     }
+
+    get("/inflation/monthly") {
+        val start = call.parseYearMonth(
+            yearParam = "startYear",
+            monthParam = "startMonth",
+            missingMessage = "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
+            invalidMessage = "Invalid start month or year value."
+        ) ?: return@get
+
+        val endExclusive = call.parseYearMonth(
+            yearParam = "endYear",
+            monthParam = "endMonth",
+            missingMessage = "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
+            invalidMessage = "Invalid end month or year value."
+        ) ?: return@get
+
+        val result = call.handleUseCaseCall {
+            calculateMonthlyInflationSeriesUseCase(start, endExclusive)
+        } ?: return@get
+
+        call.respond(
+            MonthlyInflationSeriesResponse(
+                from = result.from.toString(),
+                until = result.untilExclusive.toString(),
+                points = result.points.map { point ->
+                    MonthlyInflationPointResponse(
+                        month = point.month.toString(),
+                        multiplier = point.multiplier
+                    )
+                }
+            )
+        )
+    }
 }
 
 @Serializable
 data class InflationResponse(
     val from: String,
     val until: String,
+    @Contextual val multiplier: BigDecimal
+)
+
+@Serializable
+data class MonthlyInflationSeriesResponse(
+    val from: String,
+    val until: String,
+    val points: List<MonthlyInflationPointResponse>
+)
+
+@Serializable
+data class MonthlyInflationPointResponse(
+    val month: String,
     @Contextual val multiplier: BigDecimal
 )
 

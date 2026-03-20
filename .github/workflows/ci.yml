@@ -74,6 +74,8 @@ jobs:
             "/edo/value/at?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5&asOfYear=${today_year}&asOfMonth=${today_month}&asOfDay=${today_day}"
             "/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
             "/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&fromYear=${purchase_year}&fromMonth=${purchase_month}&fromDay=${purchase_day}&toYear=${today_year}&toMonth=${today_month}&toDay=${today_day}&firstPeriodRate=2.7&margin=1.5"
+            "/inflation/between?startYear=${purchase_year}&startMonth=${purchase_month}&endYear=${today_year}&endMonth=${today_month}"
+            "/inflation/monthly?startYear=${purchase_year}&startMonth=${purchase_month}&endYear=${today_year}&endMonth=${today_month}"
           )
           echo "⏳ Checking ${#URLS[@]} endpoint(s)..."
 
@@ -148,6 +150,28 @@ jobs:
           echo "$response" | grep -q '"from"'
           echo "$response" | grep -q '"until"'
           echo "$response" | grep -q '"points"'
+
+      - name: Smoke test inflation monthly payload
+        env:
+          APP_PORT: ${{ env.APP_PORT }}
+        run: |
+          set -euo pipefail
+          base="http://localhost:${APP_PORT}"
+          start_year="$(date -u -d '90 days ago' +%Y)"
+          start_month="$(date -u -d '90 days ago' +%-m)"
+          end_year="$(date -u +%Y)"
+          end_month="$(date -u +%-m)"
+
+          response="$(
+            curl -fsS \
+              "${base}/inflation/monthly?startYear=${start_year}&startMonth=${start_month}&endYear=${end_year}&endMonth=${end_month}"
+          )"
+
+          echo "$response" | grep -q '"from"'
+          echo "$response" | grep -q '"until"'
+          echo "$response" | grep -q '"points"'
+          echo "$response" | grep -q '"month"'
+          echo "$response" | grep -q '"multiplier"'
 
       - name: Clean up
         if: always()

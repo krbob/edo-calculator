@@ -2,7 +2,7 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/krbob/edo-calculator/ci.yml)
 
-Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarbowych EDO oraz wskaźniki inflacyjne GUS. Poniżej znajdziesz opis wszystkich dostępnych endpointów (5), wymagane parametry oraz przykładowe odpowiedzi.
+Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarbowych EDO oraz wskaźniki inflacyjne GUS. Poniżej znajdziesz opis wszystkich dostępnych endpointów (6), wymagane parametry oraz przykładowe odpowiedzi.
 
 ## Uruchomienie
 
@@ -323,6 +323,48 @@ curl "http://localhost:8080/inflation/between?startYear=2020&startMonth=1&endYea
     "from": "2020-01",
     "until": "2022-12",
     "multiplier": "1.296949"
+}
+```
+
+### GET `/inflation/monthly`
+
+- **Opis:** zwraca miesięczną serię mnożników CPI dla zadanego zakresu miesięcy. Każdy punkt reprezentuje inflację dla pojedynczego miesiąca, a `until` jest granicą wyłączną.
+- **Parametry zapytania:**
+  | nazwa        | typ     | wymagane | opis                             |
+  |--------------|---------|----------|----------------------------------|
+  | `startYear`  | integer | tak      | rok początkowy                   |
+  | `startMonth` | integer | tak      | miesiąc początkowy (1–12)        |
+  | `endYear`    | integer | tak      | rok końcowy                      |
+  | `endMonth`   | integer | tak      | miesiąc końcowy (1–12)           |
+
+> Zakres działa jak w `/inflation/between`: `startMonth` jest włączony, `endMonth` wyłączony. Odpowiedź zawiera po jednym punkcie dla każdego miesiąca należącego do zakresu.
+
+#### Przykładowe zapytanie
+
+```bash
+curl "http://localhost:8080/inflation/monthly?startYear=2025&startMonth=12&endYear=2026&endMonth=3"
+```
+
+#### Przykładowa odpowiedź
+
+```json
+{
+    "from": "2025-12",
+    "until": "2026-03",
+    "points": [
+        {
+            "month": "2025-12",
+            "multiplier": "1.002000"
+        },
+        {
+            "month": "2026-01",
+            "multiplier": "1.003000"
+        },
+        {
+            "month": "2026-02",
+            "multiplier": "1.004000"
+        }
+    ]
 }
 ```
 
