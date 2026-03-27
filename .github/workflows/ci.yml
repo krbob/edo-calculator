@@ -31,6 +31,10 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          build-scan-publish: true
+          build-scan-terms-of-use-url: 'https://gradle.com/help/legal-terms-of-use'
+          build-scan-terms-of-use-agree: 'yes'
 
       - name: Run detekt
         run: ./gradlew detekt
@@ -203,6 +207,10 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
+        with:
+          build-scan-publish: true
+          build-scan-terms-of-use-url: 'https://gradle.com/help/legal-terms-of-use'
+          build-scan-terms-of-use-agree: 'yes'
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
