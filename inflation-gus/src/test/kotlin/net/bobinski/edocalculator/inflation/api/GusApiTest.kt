@@ -53,10 +53,21 @@ class GusApiTest : KoinTest {
     }
 
     @Test
-    fun `404 for current year returns empty list`() = runTest {
-        val year = 2026
+    fun `404 for current year returns empty list via indicator endpoint`() = runTest {
+        val year = 2025
         val client = http { respond("", HttpStatusCode.NotFound) }
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year, 2, 3)))
+
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+
+        assertEquals(0, points.size)
+    }
+
+    @Test
+    fun `404 for all periods via variable endpoint returns empty list`() = runTest {
+        val year = GusApiImpl.FIRST_COICOP_2018_YEAR
+        val client = http { respond("", HttpStatusCode.NotFound) }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year, 3, 15)))
 
         val points = api.fetchYearInflation(GusAttribute.MONTHLY, year)
 
@@ -261,6 +272,123 @@ class GusApiTest : KoinTest {
         )
         assertFailsWith<IllegalArgumentException> { api.fetchYearInflation(GusAttribute.MONTHLY, 2009) }
     }
+
+    @Test
+    fun `variable endpoint extracts matching data point from paginated response`() = runTest {
+        val year = GusApiImpl.FIRST_COICOP_2018_YEAR
+        val attribute = GusAttribute.MONTHLY
+        val client = http { req ->
+            assertEquals("/api/1.1.0/variable/variable-data-section", req.url.encodedPath)
+            assertEquals("305", req.url.parameters["id-zmienna"])
+            assertEquals("1698", req.url.parameters["id-przekroj"])
+            assertEquals(year.toString(), req.url.parameters["id-rok"])
+            val periodId = req.url.parameters["id-okres"]!!.toInt()
+            respond(
+                variablePagePayload(year, periodId, attribute.measureTypeId),
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
+
+        val points = api.fetchYearInflation(attribute, year)
+
+        assertEquals(12, points.size)
+        assertEquals((247..258).toList(), points.map { it.periodId })
+        assertEquals(year, points[0].year)
+    }
+
+    @Test
+    fun `variable endpoint uses correct miara for annual attribute`() = runTest {
+        val year = GusApiImpl.FIRST_COICOP_2018_YEAR
+        val attribute = GusAttribute.ANNUAL
+        val client = http { req ->
+            val periodId = req.url.parameters["id-okres"]!!.toInt()
+            respond(
+                variablePagePayload(year, periodId, attribute.measureTypeId),
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
+
+        val points = api.fetchYearInflation(attribute, year)
+
+        assertEquals(12, points.size)
+    }
+
+    @Test
+    fun `variable endpoint paginates until target is found`() = runTest {
+        val year = GusApiImpl.FIRST_COICOP_2018_YEAR
+        val attribute = GusAttribute.MONTHLY
+        val pageHits = mutableMapOf<Int, Int>()
+        val client = http { req ->
+            val periodId = req.url.parameters["id-okres"]!!.toInt()
+            val page = req.url.parameters["page"]!!.toInt()
+            pageHits[periodId] = (pageHits[periodId] ?: 0) + 1
+            if (page < 2) {
+                respond(
+                    variablePageWithoutTarget(year, periodId, 5000),
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            } else {
+                respond(
+                    variablePagePayload(year, periodId, attribute.measureTypeId),
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
+
+        val points = api.fetchYearInflation(attribute, year)
+
+        assertEquals(12, points.size)
+        pageHits.values.forEach { hits -> assertEquals(2, hits) }
+    }
+
+    @Test
+    fun `variable endpoint with partial data for current year`() = runTest {
+        val year = GusApiImpl.FIRST_COICOP_2018_YEAR
+        val attribute = GusAttribute.MONTHLY
+        val client = http { req ->
+            val periodId = req.url.parameters["id-okres"]!!.toInt()
+            if (periodId <= 248) {
+                respond(
+                    variablePagePayload(year, periodId, attribute.measureTypeId),
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            } else {
+                respond("", HttpStatusCode.NotFound)
+            }
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year, 3, 27)))
+
+        val points = api.fetchYearInflation(attribute, year)
+
+        assertEquals(2, points.size)
+        assertEquals(listOf(247, 248), points.map { it.periodId })
+    }
+
+    @Test
+    fun `years before COICOP 2018 cutoff use indicator endpoint`() = runTest {
+        val year = GusApiImpl.FIRST_COICOP_2018_YEAR - 1
+        val client = http { req ->
+            assertEquals("/api/1.1.0/indicators/indicator-data-indicator", req.url.encodedPath)
+            respond(
+                fullPayloadForYear(year),
+                HttpStatusCode.OK,
+                headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year + 1)))
+
+        val points = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+
+        assertEquals(12, points.size)
+    }
 }
 
 private fun KoinTest.http(
@@ -291,3 +419,16 @@ private fun partialPayloadForYear(year: Int, months: Int): String =
     (1..months).joinToString(prefix = "[", postfix = "]", separator = ",") { i ->
         """{"id-daty": $year, "id-okres": ${240 + i}, "wartosc": ${100 + i / 10.0}}"""
     }
+
+private fun variablePagePayload(year: Int, periodId: Int, miaraId: Int): String {
+    val otherEntry = """{"id-daty": $year, "id-okres": $periodId, "id-pozycja-2": 14150556, "id-pozycja-3": 630869, "id-sposob-prezentacji-miara": 2, "wartosc": 99.0}"""
+    val targetEntry = """{"id-daty": $year, "id-okres": $periodId, "id-pozycja-2": 14916914, "id-pozycja-3": 6902025, "id-sposob-prezentacji-miara": $miaraId, "wartosc": 100.7}"""
+    return """{"data": [$otherEntry, $targetEntry]}"""
+}
+
+private fun variablePageWithoutTarget(year: Int, periodId: Int, count: Int): String {
+    val entries = (1..count).joinToString(separator = ",") { i ->
+        """{"id-daty": $year, "id-okres": $periodId, "id-pozycja-2": ${14150555 + i}, "id-pozycja-3": 630869, "id-sposob-prezentacji-miara": 2, "wartosc": ${99.0 + i / 100.0}}"""
+    }
+    return """{"data": [$entries]}"""
+}

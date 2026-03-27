@@ -6,6 +6,9 @@ import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.datetime.number
 import net.bobinski.edocalculator.client.utils.RateLimiter
 import net.bobinski.edocalculator.client.utils.RetryTooManyRequests
@@ -32,12 +35,22 @@ internal class GusApiImpl(
     override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
         require(year in MIN_SUPPORTED_YEAR..currentYear()) { "Unsupported year: $year" }
 
+        return if (year >= FIRST_COICOP_2018_YEAR) {
+            fetchFromVariableEndpoint(attribute, year)
+        } else {
+            fetchFromIndicatorEndpoint(attribute, year)
+        }
+    }
+
+    private suspend fun fetchFromIndicatorEndpoint(
+        attribute: GusAttribute, year: Int
+    ): List<GusIndicatorPoint> {
         return try {
             limiter.limit {
                 retry.execute {
                     try {
                         val response: List<GusIndicatorPoint> = client.get {
-                            url(buildEndpoint(attribute, year))
+                            url(buildIndicatorEndpoint(attribute, year))
                             expectSuccess = true
                         }.body()
 
@@ -67,10 +80,88 @@ internal class GusApiImpl(
         }
     }
 
-    private fun buildEndpoint(attribute: GusAttribute, year: Int): Url = URLBuilder(BASE_URL).apply {
+    private suspend fun fetchFromVariableEndpoint(
+        attribute: GusAttribute, year: Int
+    ): List<GusIndicatorPoint> {
+        return try {
+            val points = coroutineScope {
+                (GUS_PERIOD_JANUARY..GUS_PERIOD_DECEMBER).map { periodId ->
+                    async { fetchVariableDataPoint(attribute, year, periodId) }
+                }.awaitAll().filterNotNull()
+            }
+            validateAndNormalize(points, year)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: MissingCpiDataException) {
+            throw e
+        } catch (e: CpiProviderUnavailableException) {
+            throw e
+        } catch (e: UnresolvedAddressException) {
+            throw CpiProviderUnavailableException(cause = e)
+        } catch (e: HttpRequestTimeoutException) {
+            throw CpiProviderUnavailableException(cause = e)
+        } catch (e: IOException) {
+            throw CpiProviderUnavailableException(cause = e)
+        } catch (e: ResponseException) {
+            throw CpiProviderUnavailableException(cause = e)
+        }
+    }
+
+    private suspend fun fetchVariableDataPoint(
+        attribute: GusAttribute, year: Int, periodId: Int
+    ): GusIndicatorPoint? {
+        var page = 1
+        while (true) {
+            val response = limiter.limit {
+                retry.execute {
+                    try {
+                        client.get {
+                            url(buildVariableEndpoint(year, periodId, page))
+                            expectSuccess = true
+                        }.body<GusVariableDataResponse>()
+                    } catch (e: ClientRequestException) {
+                        if (e.response.status == HttpStatusCode.NotFound) {
+                            return@execute null
+                        }
+                        throw e
+                    }
+                }
+            } ?: return null
+
+            val match = response.data.find {
+                it.coicop2018Position == COICOP_2018_TOTAL_POSITION &&
+                    it.householdPosition == HOUSEHOLD_TOTAL_POSITION &&
+                    it.measureType == attribute.measureTypeId
+            }
+
+            if (match != null) {
+                return GusIndicatorPoint(
+                    year = match.year,
+                    periodId = match.periodId,
+                    value = match.value
+                )
+            }
+
+            if (response.data.size < VARIABLE_PAGE_SIZE) return null
+            page++
+        }
+    }
+
+    private fun buildIndicatorEndpoint(attribute: GusAttribute, year: Int): Url = URLBuilder(BASE_URL).apply {
         encodedPath = "/api/1.1.0/indicators/indicator-data-indicator"
         parameters.append("id-wskaznik", attribute.id.toString())
         parameters.append("id-rok", year.toString())
+        parameters.append("lang", LANG)
+    }.build()
+
+    private fun buildVariableEndpoint(year: Int, periodId: Int, page: Int): Url = URLBuilder(BASE_URL).apply {
+        encodedPath = "/api/1.1.0/variable/variable-data-section"
+        parameters.append("id-zmienna", CPI_VARIABLE_ID.toString())
+        parameters.append("id-przekroj", COICOP_2018_SECTION_ID.toString())
+        parameters.append("id-rok", year.toString())
+        parameters.append("id-okres", periodId.toString())
+        parameters.append("page-size", VARIABLE_PAGE_SIZE.toString())
+        parameters.append("page", page.toString())
         parameters.append("lang", LANG)
     }.build()
 
@@ -129,10 +220,18 @@ internal class GusApiImpl(
         private const val LANG = "pl"
         private const val EXPECTED_MONTHS = 12
         private const val GRACE_PERIOD_MONTH = 1
+        internal const val FIRST_COICOP_2018_YEAR = 2026
+        private const val CPI_VARIABLE_ID = 305
+        private const val COICOP_2018_SECTION_ID = 1698
+        private const val COICOP_2018_TOTAL_POSITION = 14916914
+        private const val HOUSEHOLD_TOTAL_POSITION = 6902025
+        private const val VARIABLE_PAGE_SIZE = 5000
+        private const val GUS_PERIOD_JANUARY = 247
+        private const val GUS_PERIOD_DECEMBER = 258
     }
 }
 
-internal enum class GusAttribute(val id: Int) {
-    MONTHLY(639),
-    ANNUAL(1832)
+internal enum class GusAttribute(val id: Int, val measureTypeId: Int) {
+    MONTHLY(639, 2),
+    ANNUAL(1832, 5)
 }
