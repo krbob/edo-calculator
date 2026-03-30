@@ -1,6 +1,6 @@
 [versions]
 kotlin-version = "2.3.20"
-ktor-version = "3.4.1"
+ktor-version = "3.4.2"
 logback-version = "1.5.32"
 kotlinx-coroutines-version = "1.10.2"
 junit-version = "6.0.3"
