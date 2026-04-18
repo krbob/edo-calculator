@@ -3,5 +3,33 @@
   "extends": [
     "config:recommended"
   ],
-  "automerge": true
+  "timezone": "Europe/Warsaw",
+  "automerge": true,
+  "automergeType": "pr",
+  "platformAutomerge": false,
+  "schedule": [
+    "* * 1 * *"
+  ],
+  "automergeSchedule": [
+    "* * 1 * *"
+  ],
+  "updateNotScheduled": false,
+  "prConcurrentLimit": 0,
+  "branchConcurrentLimit": 0,
+  "prHourlyLimit": 0,
+  "packageRules": [
+    {
+      "description": "Group non-major GitHub Actions updates",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "patch",
+        "minor",
+        "digest",
+        "pin"
+      ],
+      "groupName": "GitHub Actions"
+    }
+  ]
 }
