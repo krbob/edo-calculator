@@ -4,7 +4,7 @@ ktor-version = "3.5.1"
 logback-version = "1.5.37"
 kotlinx-coroutines-version = "1.11.0"
 junit-version = "6.1.1"
-koin-version = "4.2.1"
+koin-version = "4.2.2"
 detekt-version = "2.0.0-alpha.3"
 
 [libraries]
