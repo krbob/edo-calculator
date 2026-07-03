@@ -16,7 +16,25 @@ application {
     mainClass = "io.ktor.server.netty.EngineMain"
 }
 
+val publishMultiPlatformImage = providers.gradleProperty("publishMultiPlatformImage")
+    .map(String::toBoolean)
+    .getOrElse(false)
+
 jib {
+    if (publishMultiPlatformImage) {
+        from {
+            platforms {
+                platform {
+                    architecture = "amd64"
+                    os = "linux"
+                }
+                platform {
+                    architecture = "arm64"
+                    os = "linux"
+                }
+            }
+        }
+    }
     container {
         user = "65532:65532"
         ports = listOf("8080")

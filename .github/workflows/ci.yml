@@ -241,4 +241,4 @@ jobs:
           IMAGE="ghcr.io/${OWNER}/${REPO}"
           SHA_TAG="sha-$(git rev-parse --short HEAD)"
 
-          ./gradlew jib -Djib.to.image="${IMAGE}:${SHA_TAG}" -Djib.to.tags=latest
+          ./gradlew jib -PpublishMultiPlatformImage=true -Djib.to.image="${IMAGE}:${SHA_TAG}" -Djib.to.tags=latest
