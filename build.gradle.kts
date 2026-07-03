@@ -16,6 +16,13 @@ application {
     mainClass = "io.ktor.server.netty.EngineMain"
 }
 
+jib {
+    container {
+        user = "65532:65532"
+        ports = listOf("8080")
+    }
+}
+
 repositories {
     mavenCentral()
 }
