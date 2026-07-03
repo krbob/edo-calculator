@@ -53,6 +53,20 @@ jobs:
           IMAGE: ${{ steps.meta.outputs.image }}
         run: ./gradlew jibDockerBuild --image="$IMAGE"
 
+      - name: Scan local image
+        env:
+          IMAGE: ${{ steps.meta.outputs.image }}
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.65.0 image \
+            --scanners vuln \
+            --ignore-unfixed \
+            --severity CRITICAL \
+            --exit-code 1 \
+            --skip-version-check \
+            "$IMAGE"
+
       - name: Run container
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
