@@ -521,8 +521,10 @@ components:
           enum: [ACTIVE, MATURED]
         firstPeriodRate:
           $ref: "#/components/schemas/DecimalString"
+          description: Exact first-period percentage rate used by the calculation; precision is not rounded for reporting.
         margin:
           $ref: "#/components/schemas/DecimalString"
+          description: Exact percentage margin used by the calculation; precision is not rounded for reporting.
         principal:
           $ref: "#/components/schemas/DecimalString"
         edoValue:
@@ -569,10 +571,12 @@ components:
           minimum: 0
         ratePercent:
           $ref: "#/components/schemas/DecimalString"
+          description: Exact annual percentage rate applied to this period; monetary results are rounded separately.
         inflationPercent:
           oneOf:
             - $ref: "#/components/schemas/DecimalString"
             - type: "null"
+          description: Exact non-negative inflation percentage used to derive the period rate, or null for period one.
         interestAccrued:
           $ref: "#/components/schemas/DecimalString"
         value:
@@ -590,8 +594,10 @@ components:
           $ref: "#/components/schemas/Date"
         firstPeriodRate:
           $ref: "#/components/schemas/DecimalString"
+          description: Exact first-period percentage rate used by the calculation; precision is not rounded for reporting.
         margin:
           $ref: "#/components/schemas/DecimalString"
+          description: Exact percentage margin used by the calculation; precision is not rounded for reporting.
         principal:
           $ref: "#/components/schemas/DecimalString"
         points:

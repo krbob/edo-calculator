@@ -120,8 +120,8 @@ class CalculateEdoValueUseCase(
             asOf = evaluationDate,
             maturityDate = maturityDate,
             status = if (evaluationDate >= maturityDate) EdoStatus.MATURED else EdoStatus.ACTIVE,
-            firstPeriodRate = firstPeriodRate.setScale(2, RoundingMode.HALF_UP),
-            margin = margin.setScale(2, RoundingMode.HALF_UP),
+            firstPeriodRate = firstPeriodRate.withMinimumScale(PERCENT_SCALE),
+            margin = margin.withMinimumScale(PERCENT_SCALE),
             principal = normalizedPrincipal,
             edoValue = EdoValue(
                 totalValue = totalValue,
@@ -157,7 +157,10 @@ class CalculateEdoValueUseCase(
     }
 
     private fun BigDecimal.toPercent(): BigDecimal =
-        multiply(BigDecimal(100), mc).setScale(2, RoundingMode.HALF_UP)
+        movePointRight(2).withMinimumScale(PERCENT_SCALE)
+
+    private fun BigDecimal.withMinimumScale(minimumScale: Int): BigDecimal =
+        if (scale() < minimumScale) setScale(minimumScale) else this
 
     data class Result(
         val purchaseDate: LocalDate,
@@ -171,6 +174,7 @@ class CalculateEdoValueUseCase(
     )
 
     private companion object {
+        private const val PERCENT_SCALE = 2
         private const val TOTAL_PERIODS = 10
     }
 }

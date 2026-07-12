@@ -90,6 +90,51 @@ class CalculateEdoValueUseCaseTest {
     }
 
     @Test
+    fun `reports the exact first-period rate used to accrue interest`() = runTest {
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = FakeInflationProvider(emptyMap()),
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        )
+
+        val result = useCase(
+            purchaseDate = LocalDate(2023, 1, 1),
+            firstPeriodRate = BigDecimal("7.2549"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("100000")
+        )
+
+        val firstPeriod = result.edoValue.periods.first()
+        assertEquals(BigDecimal("7.2549"), result.firstPeriodRate)
+        assertEquals(BigDecimal("7.2549"), firstPeriod.ratePercent)
+        assertEquals(BigDecimal("7254.90"), firstPeriod.interestAccrued)
+        assertEquals(BigDecimal("107254.90"), firstPeriod.value)
+    }
+
+    @Test
+    fun `reports the exact inflation-plus-margin rate used in later periods`() = runTest {
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = FakeInflationProvider(
+                mapOf(YearMonth(2023, 11) to BigDecimal("1.031234"))
+            ),
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2025, 1, 1))
+        )
+
+        val result = useCase(
+            purchaseDate = LocalDate(2023, 1, 1),
+            firstPeriodRate = BigDecimal("0"),
+            margin = BigDecimal("1.256789"),
+            principal = BigDecimal("100000")
+        )
+
+        val secondPeriod = result.edoValue.periods.first { it.index == 2 }
+        assertEquals(BigDecimal("1.256789"), result.margin)
+        assertEquals(BigDecimal("3.1234"), secondPeriod.inflationPercent)
+        assertEquals(BigDecimal("4.380189"), secondPeriod.ratePercent)
+        assertEquals(BigDecimal("4380.19"), secondPeriod.interestAccrued)
+        assertEquals(BigDecimal("104380.19"), secondPeriod.value)
+    }
+
+    @Test
     fun `throws when margin is negative`() {
         val inflationProvider = FakeInflationProvider(emptyMap())
         val currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))

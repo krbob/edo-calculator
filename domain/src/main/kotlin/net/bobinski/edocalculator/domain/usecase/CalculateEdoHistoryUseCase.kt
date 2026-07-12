@@ -66,8 +66,8 @@ class CalculateEdoHistoryUseCase(
             purchaseDate = purchaseDate,
             from = startDate,
             until = endDate,
-            firstPeriodRate = firstPeriodRate.setScale(2, RoundingMode.HALF_UP),
-            margin = margin.setScale(2, RoundingMode.HALF_UP),
+            firstPeriodRate = firstPeriodRate.withMinimumScale(PERCENT_SCALE),
+            margin = margin.withMinimumScale(PERCENT_SCALE),
             principal = principal.setScale(2, RoundingMode.HALF_UP),
             points = points
         )
@@ -88,4 +88,11 @@ class CalculateEdoHistoryUseCase(
         val totalValue: BigDecimal,
         val totalAccruedInterest: BigDecimal
     )
+
+    private fun BigDecimal.withMinimumScale(minimumScale: Int): BigDecimal =
+        if (scale() < minimumScale) setScale(minimumScale) else this
+
+    private companion object {
+        private const val PERCENT_SCALE = 2
+    }
 }

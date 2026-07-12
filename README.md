@@ -124,6 +124,7 @@ Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo
 > Jeśli nie przekażesz parametru `principal`, zostanie użyta wartość domyślna `100.00` PLN (dotyczy również końcówki `/v1/edo/value/at`).
 > Jeśli przekażesz `principal`, musi to być poprawna liczba dziesiętna, w przeciwnym razie serwer zwróci `400 Bad Request`.
 > Obsługiwane są daty zakupu od 2000 roku, principal do `1000000000000`, stopy i marża do `1000%`, maksymalnie 18 cyfr precyzji i 6 miejsc dziesiętnych. Dłuższe lub bardziej precyzyjne wartości są odrzucane kodem `400` przed rozpoczęciem obliczeń.
+> Pola procentowe odpowiedzi zachowują dokładną precyzję stopy użytej w obliczeniu. Nie są niezależnie zaokrąglane do dwóch miejsc; do dwóch miejsc zaokrąglane są dopiero raportowane wartości pieniężne.
 
 #### Przykładowe zapytanie
 
