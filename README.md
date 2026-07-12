@@ -97,7 +97,7 @@ Budżety są ułożone od callerów do najdalszej zależności tak, aby wewnętr
 | odcinek | budżet | zachowanie |
 |---|---:|---|
 | Portfolio → EDO: value/inflation | 10 s | timeout klienta Portfolio |
-| Portfolio → EDO: history | 20 s | większy budżet na odpowiedź z maks. 4000 punktów |
+| Portfolio → EDO: history | 10 s | wspólny budżet klienta Portfolio: 8 s operacji EDO + 2 s na serializację i transfer |
 | pojedyncza operacja domenowa EDO | 8 s | przekroczenie zwraca `503`, `CPI_PROVIDER_UNAVAILABLE`, `retryable=true` |
 | pojedyncza próba EDO → GUS | connect 2 s, request/socket 3 s | zawsze podporządkowana 8-sekundowemu budżetowi operacji |
 | retry GUS | maks. 3 próby | tylko `429` i `5xx`; opóźnienia 100/200 ms, a `Retry-After` jest ograniczony do 1 s |
