@@ -35,6 +35,8 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 
 ## Endpointy
 
+Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo/value` i `/v1/inflation/monthly`). Dotychczasowe ścieżki bez prefiksu pozostają kompatybilnymi aliasami na czas migracji klientów.
+
 ### GET `/edo/value`
 
 - **Opis:** oblicza aktualną wartość obligacji EDO (stan „na dziś”) dla wskazanego dnia zakupu oraz parametrów obligacji.

@@ -31,5 +31,9 @@ fun Application.configureRouting() {
         readinessRoute(readinessCheck)
         inflationRoute()
         edoRoute()
+        route("/v1") {
+            inflationRoute()
+            edoRoute()
+        }
     }
 }
