@@ -38,7 +38,20 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 
 Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo/value` i `/v1/inflation/monthly`). Dotychczasowe ścieżki bez prefiksu pozostają kompatybilnymi aliasami na czas migracji klientów.
 
-### GET `/edo/value`
+## OpenAPI
+
+Utrzymywany kontrakt API znajduje się w pliku [`openapi/edo-calculator-v1.yaml`](openapi/edo-calculator-v1.yaml). Obejmuje wszystkie kanoniczne trasy `/v1`, probe'y `/healthz` i `/readyz`, parametry, schematy odpowiedzi oraz stabilny model błędu. Rozszerzenie `x-legacy-alias` wskazuje odpowiadającą trasę bez prefiksu.
+
+Specyfikacja nie jest publikowana przez aplikację jako Swagger UI. Test `OpenApiContractTest` parsuje ją oficjalnym Swagger Parserem i pilnuje zgodności tras, parametrów, modeli serializacji, kodów błędów i aliasów legacy. Przykład wygenerowania klienta Kotlin do ignorowanego katalogu `build/`:
+
+```bash
+docker run --rm -v "$PWD:/local" openapitools/openapi-generator-cli generate \
+  -i /local/openapi/edo-calculator-v1.yaml \
+  -g kotlin \
+  -o /local/build/generated/edo-client
+```
+
+### GET `/v1/edo/value`
 
 - **Opis:** oblicza aktualną wartość obligacji EDO (stan „na dziś”) dla wskazanego dnia zakupu oraz parametrów obligacji.
 - **Parametry zapytania:**
@@ -51,14 +64,14 @@ Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo
   | `margin`          | decimal  | tak      | marża dodawana po pierwszym okresie                    |
   | `principal`       | decimal  | nie      | nominał inwestycji w PLN (domyślnie `100.00`)          |
 
-> Jeśli nie przekażesz parametru `principal`, zostanie użyta wartość domyślna `100.00` PLN (dotyczy również końcówki `/edo/value/at`).
+> Jeśli nie przekażesz parametru `principal`, zostanie użyta wartość domyślna `100.00` PLN (dotyczy również końcówki `/v1/edo/value/at`).
 > Jeśli przekażesz `principal`, musi to być poprawna liczba dziesiętna, w przeciwnym razie serwer zwróci `400 Bad Request`.
 > Obsługiwane są daty zakupu od 2000 roku, principal do `1000000000000`, stopy i marża do `1000%`, maksymalnie 18 cyfr precyzji i 6 miejsc dziesiętnych. Dłuższe lub bardziej precyzyjne wartości są odrzucane kodem `400` przed rozpoczęciem obliczeń.
 
 #### Przykładowe zapytanie
 
 ```bash
-curl "http://localhost:8080/edo/value?purchaseYear=2019&purchaseMonth=7&purchaseDay=15&firstPeriodRate=2.70&margin=1.25&principal=1000"
+curl "http://localhost:8080/v1/edo/value?purchaseYear=2019&purchaseMonth=7&purchaseDay=15&firstPeriodRate=2.70&margin=1.25&principal=1000"
 ```
 
 #### Przykładowa odpowiedź
@@ -158,10 +171,10 @@ curl "http://localhost:8080/edo/value?purchaseYear=2019&purchaseMonth=7&purchase
 }
 ```
 
-### GET `/edo/value/at`
+### GET `/v1/edo/value/at`
 
-- **Opis:** identyczne obliczenia jak w `/edo/value`, ale dla zadanego dnia rozliczenia (`asOf`), który może różnić się od bieżącej daty systemowej.
-- **Parametry zapytania:** wszystkie parametry z `/edo/value` oraz dodatkowo:
+- **Opis:** identyczne obliczenia jak w `/v1/edo/value`, ale dla zadanego dnia rozliczenia (`asOf`), który może różnić się od bieżącej daty systemowej.
+- **Parametry zapytania:** wszystkie parametry z `/v1/edo/value` oraz dodatkowo:
   | nazwa        | typ     | wymagane | opis                                         |
   |--------------|---------|----------|----------------------------------------------|
   | `asOfYear`   | integer | tak      | rok, dla którego ma zostać wyliczona wartość |
@@ -171,7 +184,7 @@ curl "http://localhost:8080/edo/value?purchaseYear=2019&purchaseMonth=7&purchase
 #### Przykładowe zapytanie
 
 ```bash
-curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purchaseDay=15&asOfYear=2022&asOfMonth=5&asOfDay=1&firstPeriodRate=2.70&margin=1.25&principal=1000"
+curl "http://localhost:8080/v1/edo/value/at?purchaseYear=2019&purchaseMonth=7&purchaseDay=15&asOfYear=2022&asOfMonth=5&asOfDay=1&firstPeriodRate=2.70&margin=1.25&principal=1000"
 ```
 
 #### Przykładowa odpowiedź
@@ -227,10 +240,10 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
 }
 ```
 
-### GET `/edo/history`
+### GET `/v1/edo/history`
 
-- **Opis:** zwraca dzienną historię wartości EDO dla wskazanego zakupu. Endpoint wykorzystuje tę samą logikę wyceny co `/edo/value` i `/edo/value/at`, ale generuje serię punktów dzień po dniu.
-- **Parametry zapytania:** wszystkie parametry z `/edo/value` oraz opcjonalnie:
+- **Opis:** zwraca dzienną historię wartości EDO dla wskazanego zakupu. Endpoint wykorzystuje tę samą logikę wyceny co `/v1/edo/value` i `/v1/edo/value/at`, ale generuje serię punktów dzień po dniu.
+- **Parametry zapytania:** wszystkie parametry z `/v1/edo/value` oraz opcjonalnie:
   | nazwa        | typ     | wymagane | opis                                                           |
   |--------------|---------|----------|----------------------------------------------------------------|
   | `fromYear`   | integer | nie      | rok początku zakresu historii                                  |
@@ -247,11 +260,11 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
 #### Przykładowe zapytanie
 
 ```bash
-curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&fromYear=2023&fromMonth=1&fromDay=2&toYear=2023&toMonth=1&toDay=4&firstPeriodRate=7.25&margin=1.25&principal=100"
+curl "http://localhost:8080/v1/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&fromYear=2023&fromMonth=1&fromDay=2&toYear=2023&toMonth=1&toDay=4&firstPeriodRate=7.25&margin=1.25&principal=100"
 ```
 
 ```bash
-curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&firstPeriodRate=7.25&margin=1.25&principal=100"
+curl "http://localhost:8080/v1/edo/history?purchaseYear=2023&purchaseMonth=1&purchaseDay=1&firstPeriodRate=7.25&margin=1.25&principal=100"
 ```
 
 #### Przykładowa odpowiedź
@@ -284,7 +297,7 @@ curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purcha
 }
 ```
 
-### GET `/inflation/since`
+### GET `/v1/inflation/since`
 
 - **Opis:** zwraca złożony mnożnik inflacji (CPI) od wskazanego miesiąca do najnowszego miesiąca dostępnego w bazie GUS. Miesiąc końcowy (`until`) jest traktowany jako granica wyłączna – mnożnik obejmuje dane do ostatniego dnia poprzedniego miesiąca.
 - **Parametry zapytania:**
@@ -299,7 +312,7 @@ curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purcha
 #### Przykładowe zapytanie
 
 ```bash
-curl "http://localhost:8080/inflation/since?year=2020&month=1"
+curl "http://localhost:8080/v1/inflation/since?year=2020&month=1"
 ```
 
 #### Przykładowa odpowiedź
@@ -312,7 +325,7 @@ curl "http://localhost:8080/inflation/since?year=2020&month=1"
 }
 ```
 
-### GET `/inflation/between`
+### GET `/v1/inflation/between`
 
 - **Opis:** zwraca mnożnik inflacji pomiędzy dwoma wskazanymi miesiącami. Wartość `endMonth` działa jako granica wyłączna – okres obejmuje miesiące od `startMonth` włącznie do miesiąca poprzedzającego `endMonth`.
 - **Parametry zapytania:**
@@ -328,7 +341,7 @@ curl "http://localhost:8080/inflation/since?year=2020&month=1"
 #### Przykładowe zapytanie
 
 ```bash
-curl "http://localhost:8080/inflation/between?startYear=2020&startMonth=1&endYear=2022&endMonth=12"
+curl "http://localhost:8080/v1/inflation/between?startYear=2020&startMonth=1&endYear=2022&endMonth=12"
 ```
 
 #### Przykładowa odpowiedź
@@ -341,7 +354,7 @@ curl "http://localhost:8080/inflation/between?startYear=2020&startMonth=1&endYea
 }
 ```
 
-### GET `/inflation/monthly`
+### GET `/v1/inflation/monthly`
 
 - **Opis:** zwraca miesięczną serię mnożników CPI dla zadanego zakresu miesięcy. Każdy punkt reprezentuje inflację dla pojedynczego miesiąca, a `until` jest granicą wyłączną.
 - **Parametry zapytania:**
@@ -352,12 +365,12 @@ curl "http://localhost:8080/inflation/between?startYear=2020&startMonth=1&endYea
   | `endYear`    | integer | tak      | rok końcowy                      |
   | `endMonth`   | integer | tak      | miesiąc końcowy (1–12)           |
 
-> Zakres działa jak w `/inflation/between`: `startMonth` jest włączony, `endMonth` wyłączony. Odpowiedź zawiera po jednym punkcie dla każdego miesiąca należącego do zakresu.
+> Zakres działa jak w `/v1/inflation/between`: `startMonth` jest włączony, `endMonth` wyłączony. Odpowiedź zawiera po jednym punkcie dla każdego miesiąca należącego do zakresu.
 
 #### Przykładowe zapytanie
 
 ```bash
-curl "http://localhost:8080/inflation/monthly?startYear=2025&startMonth=12&endYear=2026&endMonth=3"
+curl "http://localhost:8080/v1/inflation/monthly?startYear=2025&startMonth=12&endYear=2026&endMonth=3"
 ```
 
 #### Przykładowa odpowiedź
@@ -391,8 +404,11 @@ curl "http://localhost:8080/inflation/monthly?startYear=2025&startMonth=12&endYe
 
 ```json
 {
-    "error": "Invalid request parameters."
+    "error": "Invalid request parameters.",
+    "errorCode": "INVALID_REQUEST",
+    "retryable": false,
+    "requestId": "4a903cf4-6098-4500-a17e-df46e3895f34"
 }
 ```
 
-Zwracana wiadomość (`error`) zależy od rodzaju problemu (np. brak parametru, błędny format, brak danych GUS).
+Zwracana wiadomość (`error`) zależy od rodzaju problemu (np. brak parametru, błędny format, brak danych GUS). Pełny zestaw stabilnych wartości `errorCode` jest częścią schematu `ApiErrorResponse` w OpenAPI.

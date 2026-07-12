@@ -1,0 +1,705 @@
+openapi: 3.1.0
+info:
+  title: EDO Calculator API
+  version: 1.0.0
+  description: |
+    Versioned contract for EDO bond valuation and Polish CPI calculations.
+    Decimal values in JSON and decimal query parameters are represented as strings
+    to preserve financial precision. Dates use ISO 8601.
+servers:
+  - url: http://localhost:8080
+    description: Local development
+tags:
+  - name: EDO
+    description: Ten-year EDO retail bond calculations.
+  - name: Inflation
+    description: Polish CPI calculations backed by GUS data.
+  - name: Probes
+    description: Process liveness and application dependency-graph readiness.
+x-global-error-responses:
+  "404": "#/components/responses/RouteNotFound"
+  "405": "#/components/responses/MethodNotAllowed"
+paths:
+  /v1/edo/value:
+    x-legacy-alias: /edo/value
+    get:
+      tags: [EDO]
+      operationId: getCurrentEdoValue
+      summary: Calculate the current value of an EDO bond
+      parameters:
+        - $ref: "#/components/parameters/PurchaseYear"
+        - $ref: "#/components/parameters/PurchaseMonth"
+        - $ref: "#/components/parameters/PurchaseDay"
+        - $ref: "#/components/parameters/FirstPeriodRate"
+        - $ref: "#/components/parameters/Margin"
+        - $ref: "#/components/parameters/Principal"
+      responses:
+        "200":
+          $ref: "#/components/responses/EdoValue"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "503":
+          $ref: "#/components/responses/CpiUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/edo/value/at:
+    x-legacy-alias: /edo/value/at
+    get:
+      tags: [EDO]
+      operationId: getEdoValueAtDate
+      summary: Calculate the value of an EDO bond on a specified date
+      parameters:
+        - $ref: "#/components/parameters/PurchaseYear"
+        - $ref: "#/components/parameters/PurchaseMonth"
+        - $ref: "#/components/parameters/PurchaseDay"
+        - $ref: "#/components/parameters/AsOfYear"
+        - $ref: "#/components/parameters/AsOfMonth"
+        - $ref: "#/components/parameters/AsOfDay"
+        - $ref: "#/components/parameters/FirstPeriodRate"
+        - $ref: "#/components/parameters/Margin"
+        - $ref: "#/components/parameters/Principal"
+      responses:
+        "200":
+          $ref: "#/components/responses/EdoValue"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "503":
+          $ref: "#/components/responses/CpiUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/edo/history:
+    x-legacy-alias: /edo/history
+    get:
+      tags: [EDO]
+      operationId: getEdoValueHistory
+      summary: Calculate a daily EDO value history
+      description: |
+        `from*` and `to*` are optional date groups. If any field in a group is
+        supplied, all three fields in that group must be supplied. At most 4000
+        daily points can be requested.
+      parameters:
+        - $ref: "#/components/parameters/PurchaseYear"
+        - $ref: "#/components/parameters/PurchaseMonth"
+        - $ref: "#/components/parameters/PurchaseDay"
+        - $ref: "#/components/parameters/FromYear"
+        - $ref: "#/components/parameters/FromMonth"
+        - $ref: "#/components/parameters/FromDay"
+        - $ref: "#/components/parameters/ToYear"
+        - $ref: "#/components/parameters/ToMonth"
+        - $ref: "#/components/parameters/ToDay"
+        - $ref: "#/components/parameters/FirstPeriodRate"
+        - $ref: "#/components/parameters/Margin"
+        - $ref: "#/components/parameters/Principal"
+      responses:
+        "200":
+          $ref: "#/components/responses/EdoHistory"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "503":
+          $ref: "#/components/responses/CpiUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/inflation/since:
+    x-legacy-alias: /inflation/since
+    get:
+      tags: [Inflation]
+      operationId: getCumulativeInflationSince
+      summary: Calculate cumulative CPI from a month to the latest available month
+      parameters:
+        - $ref: "#/components/parameters/Year"
+        - $ref: "#/components/parameters/Month"
+      responses:
+        "200":
+          $ref: "#/components/responses/Inflation"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "503":
+          $ref: "#/components/responses/CpiUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/inflation/between:
+    x-legacy-alias: /inflation/between
+    get:
+      tags: [Inflation]
+      operationId: getCumulativeInflationBetween
+      summary: Calculate cumulative CPI for a half-open month range
+      description: The start month is included and the end month is excluded.
+      parameters:
+        - $ref: "#/components/parameters/StartYear"
+        - $ref: "#/components/parameters/StartMonth"
+        - $ref: "#/components/parameters/EndYear"
+        - $ref: "#/components/parameters/EndMonth"
+      responses:
+        "200":
+          $ref: "#/components/responses/Inflation"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "503":
+          $ref: "#/components/responses/CpiUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /v1/inflation/monthly:
+    x-legacy-alias: /inflation/monthly
+    get:
+      tags: [Inflation]
+      operationId: getMonthlyInflation
+      summary: Return monthly CPI multipliers for a half-open month range
+      description: The start month is included and the end month is excluded.
+      parameters:
+        - $ref: "#/components/parameters/StartYear"
+        - $ref: "#/components/parameters/StartMonth"
+        - $ref: "#/components/parameters/EndYear"
+        - $ref: "#/components/parameters/EndMonth"
+      responses:
+        "200":
+          $ref: "#/components/responses/MonthlyInflation"
+        "400":
+          $ref: "#/components/responses/InvalidRequest"
+        "503":
+          $ref: "#/components/responses/CpiUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /healthz:
+    get:
+      tags: [Probes]
+      operationId: getLiveness
+      summary: Check process liveness
+      responses:
+        "200":
+          description: The process is alive.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            text/plain:
+              schema:
+                type: string
+                enum: [ok]
+  /readyz:
+    get:
+      tags: [Probes]
+      operationId: getReadiness
+      summary: Check whether the application dependency graph resolves
+      description: The check does not call the external GUS provider.
+      responses:
+        "200":
+          description: The application is ready.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            text/plain:
+              schema:
+                type: string
+                enum: [ready]
+        "503":
+          description: The application dependency graph is not ready.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            text/plain:
+              schema:
+                type: string
+                enum: [not ready]
+components:
+  headers:
+    RequestId:
+      description: Correlation identifier accepted from or generated for the request.
+      schema:
+        type: string
+        pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+  parameters:
+    PurchaseYear:
+      name: purchaseYear
+      in: query
+      required: true
+      description: Purchase year. EDO calculations support 2000 or later.
+      schema:
+        type: integer
+        minimum: 2000
+    PurchaseMonth:
+      name: purchaseMonth
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    PurchaseDay:
+      name: purchaseDay
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 31
+    AsOfYear:
+      name: asOfYear
+      in: query
+      required: true
+      schema:
+        type: integer
+    AsOfMonth:
+      name: asOfMonth
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    AsOfDay:
+      name: asOfDay
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 31
+    FromYear:
+      name: fromYear
+      in: query
+      required: false
+      description: Optional history start year; requires fromMonth and fromDay.
+      schema:
+        type: integer
+    FromMonth:
+      name: fromMonth
+      in: query
+      required: false
+      description: Optional history start month; requires fromYear and fromDay.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    FromDay:
+      name: fromDay
+      in: query
+      required: false
+      description: Optional history start day; requires fromYear and fromMonth.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 31
+    ToYear:
+      name: toYear
+      in: query
+      required: false
+      description: Optional history end year; requires toMonth and toDay.
+      schema:
+        type: integer
+    ToMonth:
+      name: toMonth
+      in: query
+      required: false
+      description: Optional history end month; requires toYear and toDay.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    ToDay:
+      name: toDay
+      in: query
+      required: false
+      description: Optional history end day; requires toYear and toMonth.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 31
+    FirstPeriodRate:
+      name: firstPeriodRate
+      in: query
+      required: true
+      description: First-period percentage rate, with up to 18 digits and 6 decimal places.
+      schema:
+        $ref: "#/components/schemas/DecimalParameter"
+    Margin:
+      name: margin
+      in: query
+      required: true
+      description: Percentage margin, with up to 18 digits and 6 decimal places.
+      schema:
+        $ref: "#/components/schemas/DecimalParameter"
+    Principal:
+      name: principal
+      in: query
+      required: false
+      description: Principal in PLN; defaults to 100 and cannot exceed 1000000000000.
+      schema:
+        allOf:
+          - $ref: "#/components/schemas/DecimalParameter"
+        default: "100"
+    Year:
+      name: year
+      in: query
+      required: true
+      description: First CPI year. CPI calculations support 2010 or later.
+      schema:
+        type: integer
+        minimum: 2010
+    Month:
+      name: month
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    StartYear:
+      name: startYear
+      in: query
+      required: true
+      description: First CPI year. CPI calculations support 2010 or later.
+      schema:
+        type: integer
+        minimum: 2010
+    StartMonth:
+      name: startMonth
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+    EndYear:
+      name: endYear
+      in: query
+      required: true
+      description: Year of the excluded end month.
+      schema:
+        type: integer
+    EndMonth:
+      name: endMonth
+      in: query
+      required: true
+      description: Excluded end month.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 12
+  responses:
+    EdoValue:
+      description: EDO value calculated successfully.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EdoResponse"
+    EdoHistory:
+      description: EDO daily history calculated successfully.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/EdoHistoryResponse"
+    Inflation:
+      description: Cumulative inflation calculated successfully.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InflationResponse"
+    MonthlyInflation:
+      description: Monthly inflation series calculated successfully.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MonthlyInflationSeriesResponse"
+    InvalidRequest:
+      description: One or more request parameters are missing, invalid, or outside supported limits.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InvalidRequestError"
+    CpiUnavailable:
+      description: CPI data or its external provider is temporarily unavailable.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CpiUnavailableError"
+    InternalError:
+      description: An unexpected internal error occurred.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InternalError"
+    RouteNotFound:
+      description: The requested route does not exist.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RouteNotFoundError"
+    MethodNotAllowed:
+      description: The route does not support the requested HTTP method.
+      headers:
+        X-Request-ID:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/MethodNotAllowedError"
+  schemas:
+    DecimalParameter:
+      type: string
+      description: A base-10 decimal encoded as a query string without loss of precision.
+      pattern: "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+      maxLength: 64
+      examples: ["2.70"]
+    DecimalString:
+      type: string
+      description: A base-10 decimal serialized as a JSON string without loss of precision.
+      pattern: "^-?(?:0|[1-9][0-9]*)(?:\\.[0-9]+)?$"
+      examples: ["123.45"]
+    Date:
+      type: string
+      format: date
+      examples: ["2026-07-12"]
+    YearMonth:
+      type: string
+      pattern: "^[0-9]{4,}-[0-9]{2}$"
+      examples: ["2026-07"]
+    EdoResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - purchaseDate
+        - asOf
+        - maturityDate
+        - status
+        - firstPeriodRate
+        - margin
+        - principal
+        - edoValue
+      properties:
+        purchaseDate:
+          $ref: "#/components/schemas/Date"
+        asOf:
+          $ref: "#/components/schemas/Date"
+        maturityDate:
+          $ref: "#/components/schemas/Date"
+        status:
+          type: string
+          enum: [ACTIVE, MATURED]
+        firstPeriodRate:
+          $ref: "#/components/schemas/DecimalString"
+        margin:
+          $ref: "#/components/schemas/DecimalString"
+        principal:
+          $ref: "#/components/schemas/DecimalString"
+        edoValue:
+          $ref: "#/components/schemas/EdoValue"
+    EdoValue:
+      type: object
+      additionalProperties: false
+      required: [totalValue, totalAccruedInterest, periods]
+      properties:
+        totalValue:
+          $ref: "#/components/schemas/DecimalString"
+        totalAccruedInterest:
+          $ref: "#/components/schemas/DecimalString"
+        periods:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdoPeriodBreakdown"
+    EdoPeriodBreakdown:
+      type: object
+      additionalProperties: false
+      required:
+        - index
+        - startDate
+        - endDate
+        - daysInPeriod
+        - daysElapsed
+        - ratePercent
+        - inflationPercent
+        - interestAccrued
+        - value
+      properties:
+        index:
+          type: integer
+          minimum: 1
+        startDate:
+          $ref: "#/components/schemas/Date"
+        endDate:
+          $ref: "#/components/schemas/Date"
+        daysInPeriod:
+          type: integer
+          minimum: 1
+        daysElapsed:
+          type: integer
+          minimum: 0
+        ratePercent:
+          $ref: "#/components/schemas/DecimalString"
+        inflationPercent:
+          oneOf:
+            - $ref: "#/components/schemas/DecimalString"
+            - type: "null"
+        interestAccrued:
+          $ref: "#/components/schemas/DecimalString"
+        value:
+          $ref: "#/components/schemas/DecimalString"
+    EdoHistoryResponse:
+      type: object
+      additionalProperties: false
+      required: [purchaseDate, from, until, firstPeriodRate, margin, principal, points]
+      properties:
+        purchaseDate:
+          $ref: "#/components/schemas/Date"
+        from:
+          $ref: "#/components/schemas/Date"
+        until:
+          $ref: "#/components/schemas/Date"
+        firstPeriodRate:
+          $ref: "#/components/schemas/DecimalString"
+        margin:
+          $ref: "#/components/schemas/DecimalString"
+        principal:
+          $ref: "#/components/schemas/DecimalString"
+        points:
+          type: array
+          maxItems: 4000
+          items:
+            $ref: "#/components/schemas/EdoHistoryPointResponse"
+    EdoHistoryPointResponse:
+      type: object
+      additionalProperties: false
+      required: [date, totalValue, totalAccruedInterest]
+      properties:
+        date:
+          $ref: "#/components/schemas/Date"
+        totalValue:
+          $ref: "#/components/schemas/DecimalString"
+        totalAccruedInterest:
+          $ref: "#/components/schemas/DecimalString"
+    InflationResponse:
+      type: object
+      additionalProperties: false
+      required: [from, until, multiplier]
+      properties:
+        from:
+          $ref: "#/components/schemas/YearMonth"
+        until:
+          $ref: "#/components/schemas/YearMonth"
+        multiplier:
+          $ref: "#/components/schemas/DecimalString"
+    MonthlyInflationSeriesResponse:
+      type: object
+      additionalProperties: false
+      required: [from, until, points]
+      properties:
+        from:
+          $ref: "#/components/schemas/YearMonth"
+        until:
+          $ref: "#/components/schemas/YearMonth"
+        points:
+          type: array
+          maxItems: 360
+          items:
+            $ref: "#/components/schemas/MonthlyInflationPointResponse"
+    MonthlyInflationPointResponse:
+      type: object
+      additionalProperties: false
+      required: [month, multiplier]
+      properties:
+        month:
+          $ref: "#/components/schemas/YearMonth"
+        multiplier:
+          $ref: "#/components/schemas/DecimalString"
+    ApiErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error, errorCode, retryable, requestId]
+      properties:
+        error:
+          type: string
+          minLength: 1
+        errorCode:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - ROUTE_NOT_FOUND
+            - METHOD_NOT_ALLOWED
+            - CPI_PROVIDER_UNAVAILABLE
+            - CPI_DATA_UNAVAILABLE
+            - INTERNAL_ERROR
+        retryable:
+          type: boolean
+        requestId:
+          type: [string, "null"]
+          pattern: "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    InvalidRequestError:
+      allOf:
+        - $ref: "#/components/schemas/ApiErrorResponse"
+        - type: object
+          properties:
+            errorCode:
+              type: string
+              enum: [INVALID_REQUEST]
+            retryable:
+              type: boolean
+              enum: [false]
+    CpiUnavailableError:
+      allOf:
+        - $ref: "#/components/schemas/ApiErrorResponse"
+        - type: object
+          properties:
+            errorCode:
+              type: string
+              enum: [CPI_PROVIDER_UNAVAILABLE, CPI_DATA_UNAVAILABLE]
+            retryable:
+              type: boolean
+              enum: [true]
+    InternalError:
+      allOf:
+        - $ref: "#/components/schemas/ApiErrorResponse"
+        - type: object
+          properties:
+            errorCode:
+              type: string
+              enum: [INTERNAL_ERROR]
+            retryable:
+              type: boolean
+              enum: [false]
+    RouteNotFoundError:
+      allOf:
+        - $ref: "#/components/schemas/ApiErrorResponse"
+        - type: object
+          properties:
+            errorCode:
+              type: string
+              enum: [ROUTE_NOT_FOUND]
+            retryable:
+              type: boolean
+              enum: [false]
+    MethodNotAllowedError:
+      allOf:
+        - $ref: "#/components/schemas/ApiErrorResponse"
+        - type: object
+          properties:
+            errorCode:
+              type: string
+              enum: [METHOD_NOT_ALLOWED]
+            retryable:
+              type: boolean
+              enum: [false]

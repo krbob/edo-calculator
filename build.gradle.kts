@@ -67,9 +67,11 @@ dependencies {
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.swagger.parser)
     testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.test {
     useJUnitPlatform()
+    inputs.file(layout.projectDirectory.file("openapi/edo-calculator-v1.yaml"))
 }
