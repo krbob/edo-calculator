@@ -19,7 +19,7 @@ internal object AppJsonFactory {
     fun create(configure: JsonBuilder.() -> Unit = {}): Json = Json {
         serializersModule = AppJsonFactory.serializersModule
         isLenient = true
-        prettyPrint = true
+        prettyPrint = false
         ignoreUnknownKeys = true
         configure()
     }
