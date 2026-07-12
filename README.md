@@ -301,6 +301,7 @@ curl "http://localhost:8080/v1/edo/value/at?purchaseYear=2019&purchaseMonth=7&pu
 ### GET `/v1/edo/history`
 
 - **Opis:** zwraca dzienną historię wartości EDO dla wskazanego zakupu. Endpoint wykorzystuje tę samą logikę wyceny co `/v1/edo/value` i `/v1/edo/value/at`, ale generuje serię punktów dzień po dniu.
+- Harmonogram maksymalnie dziesięciu okresów odsetkowych i potrzebne stopy inflacji są przygotowywane raz dla całego zakresu; kolejne punkty powstają liniowo bez ponawiania pełnej wyceny i zapytań o CPI dla każdego dnia.
 - **Parametry zapytania:** wszystkie parametry z `/v1/edo/value` oraz opcjonalnie:
   | nazwa        | typ     | wymagane | opis                                                           |
   |--------------|---------|----------|----------------------------------------------------------------|

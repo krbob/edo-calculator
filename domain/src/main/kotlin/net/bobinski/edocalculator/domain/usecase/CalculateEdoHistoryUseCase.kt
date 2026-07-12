@@ -1,8 +1,6 @@
 package net.bobinski.edocalculator.domain.usecase
 
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.validation.CalculationLimits
 import java.math.BigDecimal
@@ -43,24 +41,20 @@ class CalculateEdoHistoryUseCase(
         require(startDate <= endDate) { "From date must not be after to date." }
         CalculationLimits.requireSupportedHistoryRange(startDate, endDate)
 
-        val points = mutableListOf<HistoryPoint>()
-        var date = startDate
-        while (date <= endDate) {
-            val value = calculateEdoValueUseCase(
-                purchaseDate = purchaseDate,
-                firstPeriodRate = firstPeriodRate,
-                margin = margin,
-                principal = principal,
-                asOf = date
+        val points = calculateEdoValueUseCase.dailyValues(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = firstPeriodRate,
+            margin = margin,
+            principal = principal,
+            from = startDate,
+            until = endDate
+        ).map { value ->
+            HistoryPoint(
+                date = value.date,
+                totalValue = value.totalValue,
+                totalAccruedInterest = value.totalAccruedInterest
             )
-
-            points += HistoryPoint(
-                date = value.asOf,
-                totalValue = value.edoValue.totalValue,
-                totalAccruedInterest = value.edoValue.totalAccruedInterest
-            )
-            date = date.plus(1, DateTimeUnit.DAY)
-        }
+        }.toList()
 
         return Result(
             purchaseDate = purchaseDate,
