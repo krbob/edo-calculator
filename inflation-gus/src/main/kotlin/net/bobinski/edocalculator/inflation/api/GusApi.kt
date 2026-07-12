@@ -46,19 +46,18 @@ internal class GusApiImpl(
         attribute: GusAttribute, year: Int
     ): List<GusIndicatorPoint> {
         return try {
-            limiter.limit {
-                retry.execute {
-                    try {
-                        val response: List<GusIndicatorPoint> = client.get {
-                            url(buildIndicatorEndpoint(attribute, year))
-                            expectSuccess = true
-                        }.body()
+            executeRequest {
+                try {
+                    val response: List<GusIndicatorPoint> = client.get {
+                        url(buildIndicatorEndpoint(attribute, year))
+                        expectSuccess = true
+                    }.body()
 
-                        validateAndNormalize(response, year)
-                    } catch (e: ClientRequestException) {
-                        if (e.response.status == HttpStatusCode.NotFound) {
-                            return@execute validateAndNormalize(emptyList(), year)
-                        }
+                    validateAndNormalize(response, year)
+                } catch (e: ClientRequestException) {
+                    if (e.response.status == HttpStatusCode.NotFound) {
+                        validateAndNormalize(emptyList(), year)
+                    } else {
                         throw e
                     }
                 }
@@ -112,17 +111,16 @@ internal class GusApiImpl(
     ): GusIndicatorPoint? {
         var page = 1
         while (true) {
-            val response = limiter.limit {
-                retry.execute {
-                    try {
-                        client.get {
-                            url(buildVariableEndpoint(year, periodId, page))
-                            expectSuccess = true
-                        }.body<GusVariableDataResponse>()
-                    } catch (e: ClientRequestException) {
-                        if (e.response.status == HttpStatusCode.NotFound) {
-                            return@execute null
-                        }
+            val response = executeRequest {
+                try {
+                    client.get {
+                        url(buildVariableEndpoint(year, periodId, page))
+                        expectSuccess = true
+                    }.body<GusVariableDataResponse>()
+                } catch (e: ClientRequestException) {
+                    if (e.response.status == HttpStatusCode.NotFound) {
+                        null
+                    } else {
                         throw e
                     }
                 }
@@ -145,6 +143,10 @@ internal class GusApiImpl(
             if (response.data.size < VARIABLE_PAGE_SIZE) return null
             page++
         }
+    }
+
+    private suspend fun <T> executeRequest(block: suspend () -> T): T = retry.execute {
+        limiter.limit(block)
     }
 
     private fun buildIndicatorEndpoint(attribute: GusAttribute, year: Int): Url = URLBuilder(BASE_URL).apply {

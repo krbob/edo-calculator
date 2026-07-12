@@ -3,6 +3,7 @@ package net.bobinski.edocalculator.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.respond
+import kotlinx.coroutines.CancellationException
 import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import org.slf4j.LoggerFactory
@@ -18,6 +19,8 @@ suspend fun ApplicationCall.respondError(status: HttpStatusCode, message: String
 suspend inline fun <T> ApplicationCall.handleUseCaseCall(block: suspend () -> T): T? {
     return try {
         block()
+    } catch (e: CancellationException) {
+        throw e
     } catch (e: CpiProviderUnavailableException) {
         respondError(HttpStatusCode.ServiceUnavailable, e.message ?: "Unable to reach CPI provider.")
         null

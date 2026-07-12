@@ -1,5 +1,6 @@
 package net.bobinski.edocalculator.inflation.api
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
@@ -10,6 +11,7 @@ import java.math.BigDecimal
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.test.assertFailsWith
 
 class CachingGusApiTest {
 
@@ -161,6 +163,40 @@ class CachingGusApiTest {
     }
 
     @Test
+    fun `stale cache does not swallow refresh cancellation`() = runTest {
+        val year = 2025
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 11, day = 5))
+        val cancellation = CancellationException("request cancelled")
+        var calls = 0
+        val delegate = object : GusApi {
+            override suspend fun fetchYearInflation(
+                attribute: GusAttribute,
+                year: Int
+            ): List<GusIndicatorPoint> {
+                calls++
+                if (calls > 1) throw cancellation
+                return pts(year, 9, "100.0")
+            }
+        }
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            prefetchOnInit = false
+        )
+
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        time.advance(2.minutes)
+
+        val thrown = assertFailsWith<CancellationException> {
+            api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        }
+
+        assertSame(cancellation, thrown)
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun `only one refresh runs per year under concurrency`() = runTest {
         val year = 2025
         val time = MutableCurrentTimeProvider(fixedNow(year, month = 11, day = 5))
@@ -251,6 +287,31 @@ class CachingGusApiTest {
         val recovered = api.fetchYearInflation(GusAttribute.MONTHLY, failYear)
         assertEquals(12, recovered.size)
         assertEquals(2, delegate.calls.getValue(key(failYear)))
+    }
+
+    @Test
+    fun `warmup stops immediately when cancelled`() = runTest {
+        val time = MutableCurrentTimeProvider(fixedNow(2012, month = 2, day = 1))
+        var calls = 0
+        val delegate = object : GusApi {
+            override suspend fun fetchYearInflation(
+                attribute: GusAttribute,
+                year: Int
+            ): List<GusIndicatorPoint> {
+                calls++
+                throw CancellationException("stop warmup")
+            }
+        }
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.hours,
+            prefetchScope = this
+        )
+
+        api.awaitWarmup()
+
+        assertEquals(1, calls)
     }
 }
 

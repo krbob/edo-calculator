@@ -6,7 +6,10 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
+import net.bobinski.edocalculator.client.utils.RateLimiter
+import net.bobinski.edocalculator.client.utils.RetryTooManyRequests
 import net.bobinski.edocalculator.core.dependency.CoreModule
 import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
@@ -20,6 +23,7 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import java.math.BigDecimal
 import kotlin.test.assertFailsWith
+import kotlin.time.Duration.Companion.milliseconds
 
 class GusApiTest : KoinTest {
 
@@ -105,6 +109,40 @@ class GusApiTest : KoinTest {
 
         assertEquals(2, points.size)
         assertEquals(2, hits)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `every retry reserves a separate rate limit slot`() = runTest {
+        var hits = 0
+        val client = http {
+            hits++
+            if (hits == 1) {
+                respond("too many", HttpStatusCode.TooManyRequests)
+            } else {
+                respond(
+                    payloadForYear(2015),
+                    HttpStatusCode.OK,
+                    headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            }
+        }
+        val limiter = RateLimiter(
+            requestsPerSecond = 1,
+            maxConcurrency = 1,
+            now = { testScheduler.currentTime.milliseconds }
+        )
+        val api = GusApiImpl(
+            client = client,
+            limiter = limiter,
+            retry = RetryTooManyRequests(times = 2, baseDelay = 0.milliseconds),
+            currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015))
+        )
+
+        api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
+
+        assertEquals(2, hits)
+        assertEquals(1_000, testScheduler.currentTime)
     }
 
     @Test

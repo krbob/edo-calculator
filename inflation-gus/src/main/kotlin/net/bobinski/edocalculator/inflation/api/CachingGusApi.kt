@@ -45,12 +45,14 @@ internal class CachingGusApi(
         return lock.withLock {
             cache[key]?.takeIf { it.isFresh(year) }?.let { return@withLock it.data }
 
-            val refreshed = runCatching { delegate.fetchYearInflation(attribute, year) }
-                .onFailure { error ->
-                    cache[key]?.let { return@withLock it.data }
-                    throw error
-                }
-                .getOrThrow()
+            val refreshed = try {
+                delegate.fetchYearInflation(attribute, year)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                cache[key]?.let { return@withLock it.data }
+                throw e
+            }
 
             val entry = createEntry(year, refreshed)
             cache[key] = entry
@@ -65,13 +67,14 @@ internal class CachingGusApi(
     private suspend fun warmUpCache(years: IntRange) {
         for (attribute in GusAttribute.entries) {
             for (year in years) {
-                runCatching { delegate.fetchYearInflation(attribute, year) }
-                    .onSuccess { data ->
-                        cache[CacheKey(attribute, year)] = createEntry(year, data)
-                    }
-                    .onFailure { e ->
-                        logger.warn("Warmup failed for {} year {}: {}", attribute, year, e.message)
-                    }
+                try {
+                    val data = delegate.fetchYearInflation(attribute, year)
+                    cache[CacheKey(attribute, year)] = createEntry(year, data)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    logger.warn("Warmup failed for {} year {}: {}", attribute, year, e.message)
+                }
             }
         }
     }
