@@ -28,6 +28,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 
 - Wszystkie endpointy zwracają `Content-Type: application/json` i korzystają z pretty-print.
 - Wartości dziesiętne są serializowane jako tekst (`"123.45"`) – wynika to z dedykowanego serializatora `BigDecimal`.
+- Pojęcia „dzisiaj” i „bieżący miesiąc” używają polskiej strefy biznesowej `Europe/Warsaw`, niezależnie od strefy hosta lub kontenera.
 
 ## Endpointy
 
@@ -229,7 +230,7 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
   | `toMonth`    | integer | nie      | miesiąc końca zakresu (1–12)                                   |
   | `toDay`      | integer | nie      | dzień końca zakresu (1–31)                                     |
 
-> Jeśli nie podasz `from*`, historia zaczyna się od dnia zakupu. Jeśli nie podasz `to*`, historia kończy się na bieżącej dacie systemowej.
+> Jeśli nie podasz `from*`, historia zaczyna się od dnia zakupu. Jeśli nie podasz `to*`, historia kończy się na bieżącej dacie w strefie `Europe/Warsaw`.
 > Parametry `from*` i `to*` muszą być podane kompletnie (rok, miesiąc i dzień), jeśli chcesz ich użyć.
 > Pojedyncza odpowiedź historii może zawierać maksymalnie 4000 dziennych punktów.
 
