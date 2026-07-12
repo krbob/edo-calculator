@@ -1,24 +1,121 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "helpers:pinGitHubActionDigests"
   ],
   "timezone": "Europe/Warsaw",
-  "automerge": true,
-  "automergeType": "pr",
-  "platformAutomerge": true,
-  "rebaseWhen": "behind-base-branch",
+  "dependencyDashboard": true,
   "schedule": [
-    "* * 1 * *"
+    "before 6am on monday"
   ],
-  "automergeSchedule": [
-    "at any time"
+  "updateNotScheduled": false,
+  "prConcurrentLimit": 5,
+  "branchConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rebaseWhen": "behind-base-branch",
+  "rangeStrategy": "pin",
+  "pinDigests": true,
+  "automerge": false,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on monday"
+    ],
+    "automerge": false
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^build\\.gradle\\.kts$/"
+      ],
+      "matchStrings": [
+        "val jibBaseImage\\s*=\\s*\"(?<depName>[^\"@]+):(?<currentValue>[^\"@]+)@(?<currentDigest>sha256:[a-f0-9]+)\""
+      ],
+      "datasourceTemplate": "docker",
+      "versioningTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
+      "matchStrings": [
+        "renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version:\\s+(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
+      ],
+      "versioningTemplate": "semver-coerced"
+    }
   ],
-  "updateNotScheduled": true,
-  "prConcurrentLimit": 0,
-  "branchConcurrentLimit": 0,
-  "prHourlyLimit": 0,
   "packageRules": [
+    {
+      "description": "Automerge only mature, non-critical Gradle patch updates after CI",
+      "matchManagers": [
+        "gradle"
+      ],
+      "matchUpdateTypes": [
+        "patch"
+      ],
+      "minimumReleaseAge": "7 days",
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+    {
+      "description": "Critical runtime and build providers always require manual review",
+      "matchManagers": [
+        "gradle"
+      ],
+      "matchPackageNames": [
+        "/^org\\.jetbrains\\.kotlin/",
+        "/^io\\.ktor/",
+        "/^io\\.micrometer:/",
+        "/^io\\.insert-koin:/",
+        "/^ch\\.qos\\.logback:/",
+        "dev.detekt",
+        "org.cyclonedx.bom"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "supply-chain-review"
+      ]
+    },
+    {
+      "description": "CI actions, scanners, Gradle and the runtime base image require manual review",
+      "matchManagers": [
+        "github-actions",
+        "gradle-wrapper",
+        "custom.regex"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "supply-chain-review"
+      ]
+    },
+    {
+      "description": "Major updates always require manual review",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "automerge": false,
+      "addLabels": [
+        "major-update"
+      ]
+    },
+    {
+      "description": "Keep the pinned distroless Java 21 nonroot flavor",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "gcr.io/distroless/java21-debian13"
+      ],
+      "allowedVersions": "/^nonroot$/",
+      "automerge": false,
+      "addLabels": [
+        "supply-chain-review"
+      ]
+    },
     {
       "description": "Group non-major GitHub Actions updates",
       "matchManagers": [

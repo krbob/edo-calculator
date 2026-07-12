@@ -3,12 +3,52 @@ plugins {
     alias(libs.plugins.ktor)
     alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.cyclonedx)
 }
 
 allprojects {
+    group = "net.bobinski.edocalculator"
+    version = "development"
+
     apply(plugin = "dev.detekt")
+
+    pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
+        extensions.configure<org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension> {
+            jvmToolchain(21)
+        }
+    }
+
+    dependencyLocking {
+        lockAllConfigurations()
+    }
+
+    // The project version identifies SBOM components; published archive names stay backward-compatible.
+    tasks.withType<org.gradle.api.tasks.bundling.AbstractArchiveTask>().configureEach {
+        archiveVersion.set("")
+    }
+
     configure<dev.detekt.gradle.extensions.DetektExtension> {
         config.from(rootProject.files("detekt.yml"))
+    }
+
+    tasks.withType<org.cyclonedx.gradle.BaseCyclonedxTask>().configureEach {
+        componentGroup.set("net.bobinski.edocalculator")
+        componentVersion.set("development")
+        includeBomSerialNumber.set(false)
+        includeBuildSystem.set(false)
+        externalReferences.set(
+            listOf(
+                org.cyclonedx.model.ExternalReference().apply {
+                    type = org.cyclonedx.model.ExternalReference.Type.VCS
+                    url = "https://github.com/krbob/edo-calculator"
+                },
+            ),
+        )
+        xmlOutput.unsetConvention()
+    }
+
+    tasks.withType<org.cyclonedx.gradle.CyclonedxDirectTask>().configureEach {
+        includeConfigs.set(listOf("runtimeClasspath"))
     }
 }
 
@@ -20,9 +60,13 @@ val publishMultiPlatformImage = providers.gradleProperty("publishMultiPlatformIm
     .map(String::toBoolean)
     .getOrElse(false)
 
+val jibBaseImage =
+    "gcr.io/distroless/java21-debian13:nonroot@sha256:258e48dcf7e9441095e8332c654e5005b21cd06f610ca9807ccbb56a5da412f7"
+
 jib {
-    if (publishMultiPlatformImage) {
-        from {
+    from {
+        image = jibBaseImage
+        if (publishMultiPlatformImage) {
             platforms {
                 platform {
                     architecture = "amd64"
@@ -36,8 +80,43 @@ jib {
         }
     }
     container {
+        creationTime = "EPOCH"
         user = "65532:65532"
         ports = listOf("8080")
+    }
+}
+
+tasks.named<org.cyclonedx.gradle.CyclonedxAggregateTask>("cyclonedxBom") {
+    projectType.set(org.cyclonedx.model.Component.Type.APPLICATION)
+    componentName.set("edo-calculator")
+    jsonOutput.set(layout.buildDirectory.file("reports/cyclonedx/edo-calculator.cdx.json"))
+    doLast {
+        val sbomFile = jsonOutput.get().asFile
+        val sbom = sbomFile.readText(Charsets.UTF_8)
+        val timestampPattern = Regex(""""timestamp"\s*:\s*"[^"]+"""")
+        check(timestampPattern.findAll(sbom).count() == 1) {
+            "Expected exactly one CycloneDX metadata timestamp in ${sbomFile.path}."
+        }
+        sbomFile.writeText(
+            sbom.replace(timestampPattern, """"timestamp" : "1970-01-01T00:00:00Z""""),
+            Charsets.UTF_8,
+        )
+    }
+}
+
+tasks.register("resolveAndLockAll") {
+    group = "build setup"
+    description = "Resolves every resolvable configuration and writes complete dependency lock state."
+    doFirst {
+        check(gradle.startParameter.isWriteDependencyLocks) {
+            "Run this task with --write-locks."
+        }
+    }
+    doLast {
+        allprojects
+            .flatMap { it.configurations }
+            .filter { it.isCanBeResolved }
+            .forEach { it.resolve() }
     }
 }
 

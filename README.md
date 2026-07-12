@@ -24,6 +24,29 @@ services:
 
 Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up -d`.
 
+## Łańcuch dostaw i powtarzalność builda
+
+Build używa jawnego toolchainu Java 21 LTS we wszystkich modułach. Wrapper Gradle 9.6.1 weryfikuje pobraną dystrybucję przez zapisany SHA-256, a wszystkie rozwiązywalne konfiguracje Gradle mają wersje utrwalone w repozytoryjnych plikach `*gradle.lockfile`. Po świadomej zmianie zależności należy odświeżyć i zacommitować lockfile:
+
+```bash
+./gradlew resolveAndLockAll --write-locks
+git status --short -- '*gradle.lockfile'
+```
+
+CI uruchamia tę samą komendę i kończy się błędem, jeśli wygenerowany stan różni się od wersji w repozytorium. Nie należy ręcznie edytować lockfile.
+
+Zagregowany CycloneDX 1.6 SBOM dla zależności produkcyjnych powstaje poleceniem:
+
+```bash
+./gradlew cyclonedxBom
+```
+
+Wynik trafia do ignorowanego pliku `build/reports/cyclonedx/edo-calculator.cdx.json`. Nie zawiera losowego numeru seryjnego, danych konkretnego systemu CI ani zależności testowych. Pole `metadata.timestamp` ma wartość epoki reprodukowalnego builda (`1970-01-01T00:00:00Z`), dlatego dwa uruchomienia dla tego samego źródła dają identyczne bajty i SHA-256. Rzeczywisty czas wygenerowania pozostaje w metadanych runu oraz artefaktu GitHub Actions.
+
+CI publikuje SBOM jako artefakt na 14 dni i skanuje zarówno jego zależności runtime, jak i pakiety systemowe lokalnie zbudowanego obrazu. Skan SBOM działa offline względem zewnętrznych repozytoriów Maven i korzysta z dokładnych PURL zapisanych w dokumencie. Biblioteki JVM nie są ponownie skanowane z warstw obrazu, dzięki czemu CI nie pobiera prawie gigabajtowej bazy identyfikacji artefaktów Java i nie dubluje gate'u SBOM. Gate obejmuje podatności `HIGH` i `CRITICAL`, dla których istnieje poprawka; `ignore-unfixed` zapobiega blokowaniu zmian problemami bez dostępnej ścieżki naprawy. Wersja Trivy i kod akcji są przypięte, podobnie jak wszystkie pozostałe akcje GitHub.
+
+Obraz Jib bazuje na wieloarchitekturnym `gcr.io/distroless/java21-debian13:nonroot` przypiętym digestem indeksu OCI, działa jako `65532:65532`, a czas utworzenia warstw to `EPOCH`. Renovate śledzi digest przez dedykowany manager, ale aktualizacje obrazu bazowego, Gradle, GitHub Actions, skanera, Kotlin/Ktor/Koin/Logback/Micrometer/CycloneDX/Detekt oraz wszystkie wersje major wymagają ręcznego review. Automerge jest ograniczony do niekrytycznych patchy Gradle starszych niż 7 dni i następuje dopiero po zielonym CI.
+
 ## Konwencje odpowiedzi
 
 - Endpointy domenowe zwracają `Content-Type: application/json`; probe'y i `/metrics` używają formatu tekstowego właściwego dla danego endpointu. Produkcyjne odpowiedzi JSON są kompaktowe, aby ograniczyć koszt dużych historii; przykłady poniżej są sformatowane wyłącznie dla czytelności.

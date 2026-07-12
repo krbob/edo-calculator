@@ -15,32 +15,80 @@ env:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           distribution: 'temurin'
-          java-version: '25'
+          java-version: '21'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
         with:
           build-scan-publish: true
           build-scan-terms-of-use-url: 'https://gradle.com/help/legal-terms-of-use'
           build-scan-terms-of-use-agree: 'yes'
 
-      - name: Run detekt
-        run: ./gradlew detekt
+      - name: Verify dependency locks
+        run: |
+          set -euo pipefail
+          ./gradlew resolveAndLockAll --write-locks
+          lock_changes="$(git status --porcelain -- '*gradle.lockfile')"
+          if [[ -n "$lock_changes" ]]; then
+            echo "Dependency lockfiles are stale:"
+            echo "$lock_changes"
+            exit 1
+          fi
 
-      - name: Run unit tests
-        run: ./gradlew test
+      - name: Run verification and assemble
+        run: ./gradlew test detekt assemble
+
+      - name: Generate reproducible CycloneDX SBOM
+        id: sbom
+        run: |
+          set -euo pipefail
+          sbom="build/reports/cyclonedx/edo-calculator.cdx.json"
+          ./gradlew cyclonedxBom --rerun-tasks
+          first_hash="$(sha256sum "$sbom" | cut -d ' ' -f 1)"
+          ./gradlew cyclonedxBom --rerun-tasks
+          second_hash="$(sha256sum "$sbom" | cut -d ' ' -f 1)"
+          if [[ "$first_hash" != "$second_hash" ]]; then
+            echo "CycloneDX SBOM is not reproducible: $first_hash != $second_hash"
+            exit 1
+          fi
+          echo "sha256=$second_hash" >> "$GITHUB_OUTPUT"
+
+      - name: Upload CycloneDX SBOM
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: edo-calculator-sbom-${{ steps.sbom.outputs.sha256 }}
+          path: build/reports/cyclonedx/edo-calculator.cdx.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Scan runtime dependencies
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        env:
+          TRIVY_OFFLINE_SCAN: 'true'
+        with:
+          scan-type: sbom
+          scan-ref: build/reports/cyclonedx/edo-calculator.cdx.json
+          # renovate: datasource=github-releases depName=aquasecurity/trivy
+          version: v0.72.0
+          scanners: vuln
+          vuln-type: library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          hide-progress: true
+          timeout: 10m0s
 
       - name: Derive local image tag
         id: meta
@@ -54,18 +102,18 @@ jobs:
         run: ./gradlew jibDockerBuild --image="$IMAGE"
 
       - name: Scan local image
-        env:
-          IMAGE: ${{ steps.meta.outputs.image }}
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image \
-            --scanners vuln \
-            --ignore-unfixed \
-            --severity CRITICAL \
-            --exit-code 1 \
-            --skip-version-check \
-            "$IMAGE"
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ steps.meta.outputs.image }}
+          skip-setup-trivy: true
+          scanners: vuln
+          vuln-type: os
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: 1
+          hide-progress: true
+          timeout: 10m0s
 
       - name: Run container
         env:
@@ -107,7 +155,7 @@ jobs:
           wait_for_200() {
             local url="$1"
             echo "→ Waiting for 200 from: $url"
-            for i in $(seq 1 60); do
+            for _ in $(seq 1 60); do
               if curl -fsS --max-time 1 "$url" > /dev/null; then
                 echo "✅ 200 from: $url"
                 return 0
@@ -203,7 +251,7 @@ jobs:
         run: docker rm -f app || true
 
   publish:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
@@ -212,16 +260,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
 
       - name: Set up JDK
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:
           distribution: 'temurin'
-          java-version: '25'
+          java-version: '21'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f131e8634966bd73d06cc69884922b02e6faf92 # v6
         with:
           build-scan-publish: true
           build-scan-terms-of-use-url: 'https://gradle.com/help/legal-terms-of-use'
