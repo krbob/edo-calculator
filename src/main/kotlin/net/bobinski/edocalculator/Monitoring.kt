@@ -19,8 +19,9 @@ fun Application.configureMonitoring() {
     install(CallLogging) {
         level = Level.INFO
         callIdMdc("requestId")
-        filter { call -> call.request.path() != "/healthz" }
+        filter { call -> call.request.path() !in PROBE_PATHS }
     }
 }
 
 private val REQUEST_ID_PATTERN = Regex("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
+private val PROBE_PATHS = setOf("/healthz", "/readyz")

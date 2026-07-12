@@ -9,7 +9,7 @@ Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarb
 1. Upewnij się, że masz zainstalowanego Dockera.
 2. Uruchom kontener: `docker run --rm -p 8080:8080 ghcr.io/krbob/edo-calculator:latest`.
 3. Serwer będzie dostępny pod adresem `http://localhost:8080`.
-4. Zewnętrzna sonda zdrowia jest dostępna pod `GET /healthz`. Obraz Jib nie definiuje wbudowanego Docker `HEALTHCHECK`.
+4. Liveness procesu jest dostępne pod `GET /healthz`, a readiness grafu zależności aplikacji pod `GET /readyz`. Readiness nie odpytuje zewnętrznego GUS, aby jego awaria nie wyłączała wszystkich replik. Obraz Jib nie definiuje wbudowanego Docker `HEALTHCHECK`.
 
 Alternatywnie, możesz użyć Docker Compose:
 
