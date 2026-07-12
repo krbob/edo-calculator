@@ -230,6 +230,48 @@ class CalculateEdoValueUseCaseTest {
         assertEquals("First period rate must not be negative.", exception.message)
     }
 
+    @Test
+    fun `rejects principal with an unsafe exponent before calculation`() {
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = FakeInflationProvider(emptyMap()),
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        )
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(
+                    purchaseDate = LocalDate(2023, 1, 1),
+                    firstPeriodRate = BigDecimal("7.25"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("1E+100000")
+                )
+            }
+        }
+
+        assertEquals("Principal exceeds supported precision or scale.", exception.message)
+    }
+
+    @Test
+    fun `rejects rates above configured maximum`() {
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = FakeInflationProvider(emptyMap()),
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        )
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(
+                    purchaseDate = LocalDate(2023, 1, 1),
+                    firstPeriodRate = BigDecimal("1000.01"),
+                    margin = BigDecimal("1.25"),
+                    principal = BigDecimal("100")
+                )
+            }
+        }
+
+        assertEquals("First period rate must not exceed 1000.", exception.message)
+    }
+
     private class FakeInflationProvider(
         private val yearlyMultipliers: Map<YearMonth, BigDecimal>
     ) : InflationProvider {

@@ -124,6 +124,30 @@ class EdoRouteTest {
     }
 
     @Test
+    fun `responds with bad request before parsing an oversized principal`() {
+        val useCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+
+        testApplication {
+            configureApp(useCase)
+
+            val response = client.get("/edo/value") {
+                parameter("purchaseYear", "2023")
+                parameter("purchaseMonth", "1")
+                parameter("purchaseDay", "1")
+                parameter("firstPeriodRate", "7.25")
+                parameter("margin", "1.25")
+                parameter("principal", "9".repeat(65))
+            }
+
+            val json = GlobalContext.get().get<Json>()
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            assertEquals("Query parameter 'principal' must be a decimal.", body["error"])
+            coVerify { useCase wasNot Called }
+        }
+    }
+
+    @Test
     fun `responds with bad request when as-of date parameters missing`() {
         val useCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
 

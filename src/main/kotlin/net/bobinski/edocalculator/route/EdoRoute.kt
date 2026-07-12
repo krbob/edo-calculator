@@ -80,8 +80,8 @@ private suspend fun ApplicationCall.respondWithEdoValue(
     asOf: LocalDate?,
     calculateEdoValueUseCase: CalculateEdoValueUseCase
 ) {
-    val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBigDecimalOrNull()
-    val margin = request.queryParameters["margin"]?.toBigDecimalOrNull()
+    val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBoundedBigDecimalOrNull()
+    val margin = request.queryParameters["margin"]?.toBoundedBigDecimalOrNull()
     val principal = parsePrincipal() ?: return
 
     if (firstPeriodRate == null || margin == null) {
@@ -117,7 +117,7 @@ private suspend fun ApplicationCall.respondWithEdoValue(
 private suspend fun ApplicationCall.parsePrincipal(): BigDecimal? {
     val rawPrincipal = request.queryParameters["principal"] ?: return BigDecimal(100)
 
-    return rawPrincipal.toBigDecimalOrNull() ?: run {
+    return rawPrincipal.toBoundedBigDecimalOrNull() ?: run {
         respondError(HttpStatusCode.BadRequest, "Query parameter 'principal' must be a decimal.")
         null
     }
@@ -129,8 +129,8 @@ private suspend fun ApplicationCall.respondWithEdoHistory(
     to: LocalDate?,
     calculateEdoHistoryUseCase: CalculateEdoHistoryUseCase
 ) {
-    val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBigDecimalOrNull()
-    val margin = request.queryParameters["margin"]?.toBigDecimalOrNull()
+    val firstPeriodRate = request.queryParameters["firstPeriodRate"]?.toBoundedBigDecimalOrNull()
+    val margin = request.queryParameters["margin"]?.toBoundedBigDecimalOrNull()
     val principal = parsePrincipal() ?: return
 
     if (firstPeriodRate == null || margin == null) {
@@ -267,3 +267,9 @@ private suspend fun ApplicationCall.parseDate(
         null
     }
 }
+
+private fun String.toBoundedBigDecimalOrNull(): BigDecimal? =
+    takeIf { it.length <= MAX_DECIMAL_PARAMETER_LENGTH }
+        ?.toBigDecimalOrNull()
+
+private const val MAX_DECIMAL_PARAMETER_LENGTH = 64

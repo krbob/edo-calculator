@@ -3,8 +3,9 @@ package net.bobinski.edocalculator.domain.usecase
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.minusMonth
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
-import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
+import net.bobinski.edocalculator.domain.inflation.InflationProvider
+import net.bobinski.edocalculator.domain.validation.CalculationLimits
 import java.math.BigDecimal
 
 class CalculateCumulativeInflationUseCase(
@@ -26,6 +27,7 @@ class CalculateCumulativeInflationUseCase(
             require(endExclusive <= currentMonth) {
                 "End month must not be in the future."
             }
+            CalculationLimits.requireSupportedInflationRange(start, endExclusive)
             val multiplier = inflationProvider.getInflationMultiplier(start, endExclusive)
             return Result(
                 from = start,
@@ -33,6 +35,8 @@ class CalculateCumulativeInflationUseCase(
                 multiplier = multiplier
             )
         }
+
+        CalculationLimits.requireSupportedInflationRange(start, currentMonth)
 
         var resolvedEndExclusive = currentMonth
         lateinit var multiplier: BigDecimal

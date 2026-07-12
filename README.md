@@ -46,6 +46,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 
 > Jeśli nie przekażesz parametru `principal`, zostanie użyta wartość domyślna `100.00` PLN (dotyczy również końcówki `/edo/value/at`).
 > Jeśli przekażesz `principal`, musi to być poprawna liczba dziesiętna, w przeciwnym razie serwer zwróci `400 Bad Request`.
+> Obsługiwane są daty zakupu od 2000 roku, principal do `1000000000000`, stopy i marża do `1000%`, maksymalnie 18 cyfr precyzji i 6 miejsc dziesiętnych. Dłuższe lub bardziej precyzyjne wartości są odrzucane kodem `400` przed rozpoczęciem obliczeń.
 
 #### Przykładowe zapytanie
 
@@ -230,6 +231,7 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
 
 > Jeśli nie podasz `from*`, historia zaczyna się od dnia zakupu. Jeśli nie podasz `to*`, historia kończy się na bieżącej dacie systemowej.
 > Parametry `from*` i `to*` muszą być podane kompletnie (rok, miesiąc i dzień), jeśli chcesz ich użyć.
+> Pojedyncza odpowiedź historii może zawierać maksymalnie 4000 dziennych punktów.
 
 #### Przykładowe zapytanie
 
@@ -282,6 +284,7 @@ curl "http://localhost:8080/edo/history?purchaseYear=2023&purchaseMonth=1&purcha
 
 > Pola `from` i `until` mają format `YYYY-MM`; `until` wskazuje miesiąc wyłączony z obliczeń (granica wyłączna).
 > Miesiąc startowy musi być wcześniejszy niż bieżący miesiąc kalendarzowy.
+> Obsługiwane są dane od 2010 roku, a pojedynczy zakres nie może przekraczać 360 miesięcy.
 #### Przykładowe zapytanie
 
 ```bash

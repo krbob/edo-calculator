@@ -11,6 +11,7 @@ import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.inflation.InflationProvider
+import net.bobinski.edocalculator.domain.validation.CalculationLimits
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -40,6 +41,12 @@ class CalculateEdoValueUseCase(
         require(principal.signum() >= 0) { "Principal must not be negative." }
         require(firstPeriodRate.signum() >= 0) { "First period rate must not be negative." }
         require(margin.signum() >= 0) { "Margin must not be negative." }
+        CalculationLimits.requireSupportedEdoInputs(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = firstPeriodRate,
+            margin = margin,
+            principal = principal
+        )
 
         val normalizedPrincipal = principal.setScale(2, RoundingMode.HALF_UP)
         var currentPrincipal = normalizedPrincipal

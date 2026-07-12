@@ -3,6 +3,7 @@ package net.bobinski.edocalculator.domain.usecase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.Called
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
@@ -117,6 +118,27 @@ class CalculateEdoHistoryUseCaseTest {
         assertEquals(LocalDate(2025, 1, 3), result.from)
         assertEquals(LocalDate(2025, 1, 4), result.until)
         assertEquals(2, result.points.size)
+    }
+
+    @Test
+    fun `rejects history that would exceed response point limit`() = runTest {
+        val calculateEdoValueUseCase = mockk<CalculateEdoValueUseCase>(relaxed = true)
+        val useCase = CalculateEdoHistoryUseCase(
+            calculateEdoValueUseCase = calculateEdoValueUseCase,
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2026, 7, 12))
+        )
+
+        val exception = org.junit.jupiter.api.assertThrows<IllegalArgumentException> {
+            useCase(
+                purchaseDate = LocalDate(2010, 1, 1),
+                firstPeriodRate = BigDecimal("7.25"),
+                margin = BigDecimal("1.25"),
+                principal = BigDecimal("100")
+            )
+        }
+
+        assertEquals("EDO history must not exceed 4000 daily points.", exception.message)
+        coVerify { calculateEdoValueUseCase wasNot Called }
     }
 
     private class FakeCurrentTimeProvider(

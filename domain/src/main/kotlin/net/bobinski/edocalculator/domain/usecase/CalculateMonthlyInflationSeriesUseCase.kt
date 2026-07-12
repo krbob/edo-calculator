@@ -5,6 +5,7 @@ import kotlinx.datetime.YearMonth
 import kotlinx.datetime.plus
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.inflation.InflationProvider
+import net.bobinski.edocalculator.domain.validation.CalculationLimits
 import java.math.BigDecimal
 
 class CalculateMonthlyInflationSeriesUseCase(
@@ -23,6 +24,7 @@ class CalculateMonthlyInflationSeriesUseCase(
         require(endExclusive <= currentMonth) {
             "End month must not be in the future."
         }
+        CalculationLimits.requireSupportedInflationRange(start, endExclusive)
 
         val points = (start..<endExclusive).map { month ->
             MonthlyInflationPoint(

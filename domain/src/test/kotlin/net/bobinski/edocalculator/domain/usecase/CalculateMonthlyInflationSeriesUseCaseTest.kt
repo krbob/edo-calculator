@@ -3,6 +3,7 @@ package net.bobinski.edocalculator.domain.usecase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.Called
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -69,6 +70,16 @@ class CalculateMonthlyInflationSeriesUseCaseTest {
         }
 
         assertEquals("End month must not be in the future.", exception.message)
+    }
+
+    @Test
+    fun `rejects unsupported CPI years before materializing range`() = runTest {
+        val exception = assertThrows<IllegalArgumentException> {
+            useCase(YearMonth(2009, 12), YearMonth(2010, 2))
+        }
+
+        assertEquals("Start year must be 2010 or later.", exception.message)
+        coVerify { inflationProvider wasNot Called }
     }
 
     private class FakeCurrentTimeProvider(

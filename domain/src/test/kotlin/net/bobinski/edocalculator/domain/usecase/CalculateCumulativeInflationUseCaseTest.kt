@@ -163,4 +163,33 @@ class CalculateCumulativeInflationUseCaseTest {
 
         assertEquals("End month must not be in the future.", exception.message)
     }
+
+    @Test
+    fun `rejects years before supported CPI history without calling provider`() {
+        every { currentTimeProvider.yearMonth() } returns YearMonth(2026, 7)
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest { useCase(YearMonth(2009, 12)) }
+        }
+
+        assertEquals("Start year must be 2010 or later.", exception.message)
+        coVerify { inflationProvider wasNot Called }
+    }
+
+    @Test
+    fun `rejects inflation ranges longer than configured maximum`() {
+        every { currentTimeProvider.yearMonth() } returns YearMonth(2050, 2)
+
+        val exception = assertThrows<IllegalArgumentException> {
+            runTest {
+                useCase(
+                    start = YearMonth(2010, 1),
+                    endExclusive = YearMonth(2050, 1)
+                )
+            }
+        }
+
+        assertEquals("Inflation range must not exceed 360 months.", exception.message)
+        coVerify { inflationProvider wasNot Called }
+    }
 }

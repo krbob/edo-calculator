@@ -4,6 +4,7 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
+import net.bobinski.edocalculator.domain.validation.CalculationLimits
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -22,6 +23,16 @@ class CalculateEdoHistoryUseCase(
         val currentDate = currentTimeProvider.localDate()
         val endDate = to ?: currentDate
 
+        require(principal.signum() >= 0) { "Principal must not be negative." }
+        require(firstPeriodRate.signum() >= 0) { "First period rate must not be negative." }
+        require(margin.signum() >= 0) { "Margin must not be negative." }
+        CalculationLimits.requireSupportedEdoInputs(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = firstPeriodRate,
+            margin = margin,
+            principal = principal
+        )
+
         if (to != null) {
             require(endDate <= currentDate) { "To date must not be in the future." }
         }
@@ -30,6 +41,7 @@ class CalculateEdoHistoryUseCase(
 
         val startDate = maxOf(from ?: purchaseDate, purchaseDate)
         require(startDate <= endDate) { "From date must not be after to date." }
+        CalculationLimits.requireSupportedHistoryRange(startDate, endDate)
 
         val points = mutableListOf<HistoryPoint>()
         var date = startDate
