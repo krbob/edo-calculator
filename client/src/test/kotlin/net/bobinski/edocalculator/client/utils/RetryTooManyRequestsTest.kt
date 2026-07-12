@@ -5,12 +5,14 @@ import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 class RetryTooManyRequestsTest {
 
@@ -87,9 +89,39 @@ class RetryTooManyRequestsTest {
         assertEquals(HttpStatusCode.BadRequest, exception.response.status)
     }
 
-    private fun mockResponse(status: HttpStatusCode): HttpResponse {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `caps Retry-After delay and reports the scheduled retry reason`() = runTest {
+        var attempt = 0
+        val reasons = mutableListOf<RetryReason>()
+        val retry = RetryTooManyRequests(
+            times = 2,
+            baseDelay = 100.milliseconds,
+            maxDelay = 1.seconds,
+            onRetry = reasons::add
+        )
+
+        val result = retry.execute {
+            if (attempt++ == 0) {
+                throw ClientRequestException(
+                    mockResponse(HttpStatusCode.TooManyRequests, retryAfter = "60"),
+                    "test"
+                )
+            }
+            "ok"
+        }
+
+        assertEquals("ok", result)
+        assertEquals(1_000, testScheduler.currentTime)
+        assertEquals(listOf(RetryReason.RATE_LIMITED), reasons)
+    }
+
+    private fun mockResponse(status: HttpStatusCode, retryAfter: String? = null): HttpResponse {
         val response = mockk<HttpResponse>(relaxed = true)
         every { response.status } returns status
+        if (retryAfter != null) {
+            every { response.headers } returns headersOf(HttpHeaders.RetryAfter, retryAfter)
+        }
         return response
     }
 }

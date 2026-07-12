@@ -6,6 +6,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import net.bobinski.edocalculator.client.utils.RateLimiter
@@ -96,6 +97,8 @@ class GusApiTest : KoinTest {
     @Test
     fun `429 then 200 is retried and succeeds`() = runTest {
         var hits = 0
+        val registry = SimpleMeterRegistry()
+        val metrics = MicrometerGusMetrics(registry)
         val client = http {
             hits++
             if (hits == 1) respond("too many", HttpStatusCode.TooManyRequests)
@@ -104,11 +107,28 @@ class GusApiTest : KoinTest {
                 headersOf(HttpHeaders.ContentType, "application/json")
             )
         }
-        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015)))
+        val api = GusApiImpl(
+            client = client,
+            metrics = metrics,
+            currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015))
+        )
         val points = api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
 
         assertEquals(2, points.size)
         assertEquals(2, hits)
+        assertEquals(1.0, registry.counter("edo.gus.retries", "reason", "rate_limited").count())
+        assertEquals(
+            1L,
+            registry.timer(
+                "edo.gus.fetch",
+                "attribute",
+                "monthly",
+                "endpoint",
+                "indicator",
+                "outcome",
+                "success"
+            ).count()
+        )
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -169,14 +189,33 @@ class GusApiTest : KoinTest {
 
     @Test
     fun `persistent 503 is wrapped as provider unavailable`() = runTest {
+        val registry = SimpleMeterRegistry()
+        val metrics = MicrometerGusMetrics(registry)
         val client = http {
             respond("unavailable", HttpStatusCode.ServiceUnavailable)
         }
-        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015)))
+        val api = GusApiImpl(
+            client = client,
+            metrics = metrics,
+            currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2015))
+        )
 
         assertFailsWith<CpiProviderUnavailableException> {
             api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
         }
+        assertEquals(2.0, registry.counter("edo.gus.retries", "reason", "server_error").count())
+        assertEquals(
+            1L,
+            registry.timer(
+                "edo.gus.fetch",
+                "attribute",
+                "monthly",
+                "endpoint",
+                "indicator",
+                "outcome",
+                "provider_unavailable"
+            ).count()
+        )
     }
 
     @Test

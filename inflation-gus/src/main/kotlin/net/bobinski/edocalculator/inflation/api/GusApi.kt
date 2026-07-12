@@ -28,17 +28,39 @@ internal interface GusApi {
 internal class GusApiImpl(
     private val client: HttpClient,
     private val limiter: RateLimiter = RateLimiter(requestsPerSecond = 5, maxConcurrency = 5),
-    private val retry: RetryTooManyRequests = RetryTooManyRequests(times = 3, baseDelay = 100.milliseconds),
+    private val metrics: GusMetrics = GusMetrics.NO_OP,
+    private val retry: RetryTooManyRequests = RetryTooManyRequests(
+        times = 3,
+        baseDelay = 100.milliseconds,
+        onRetry = metrics::recordRetry
+    ),
     private val currentTimeProvider: CurrentTimeProvider
 ) : GusApi {
 
     override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
-        require(year in MIN_SUPPORTED_YEAR..currentYear()) { "Unsupported year: $year" }
+        val endpoint = if (year >= FIRST_COICOP_2018_YEAR) GusEndpoint.VARIABLE else GusEndpoint.INDICATOR
+        val observation = metrics.startFetch(attribute, endpoint)
 
-        return if (year >= FIRST_COICOP_2018_YEAR) {
-            fetchFromVariableEndpoint(attribute, year)
-        } else {
-            fetchFromIndicatorEndpoint(attribute, year)
+        return try {
+            require(year in MIN_SUPPORTED_YEAR..currentYear()) { "Unsupported year: $year" }
+            val result = when (endpoint) {
+                GusEndpoint.INDICATOR -> fetchFromIndicatorEndpoint(attribute, year)
+                GusEndpoint.VARIABLE -> fetchFromVariableEndpoint(attribute, year)
+            }
+            observation.complete(GusFetchOutcome.SUCCESS)
+            result
+        } catch (e: CancellationException) {
+            observation.complete(GusFetchOutcome.CANCELLED)
+            throw e
+        } catch (e: MissingCpiDataException) {
+            observation.complete(GusFetchOutcome.MISSING_DATA)
+            throw e
+        } catch (e: CpiProviderUnavailableException) {
+            observation.complete(GusFetchOutcome.PROVIDER_UNAVAILABLE)
+            throw e
+        } catch (e: Exception) {
+            observation.complete(GusFetchOutcome.ERROR)
+            throw e
         }
     }
 

@@ -5,11 +5,15 @@ import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.callid.callId
 import io.ktor.server.response.respond
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.Serializable
 import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import org.slf4j.LoggerFactory
 import java.nio.channels.UnresolvedAddressException
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 @PublishedApi
 internal val routeLogger = LoggerFactory.getLogger("net.bobinski.edocalculator.route")
@@ -31,11 +35,22 @@ suspend fun ApplicationCall.respondError(
     )
 }
 
-suspend inline fun <T> ApplicationCall.handleUseCaseCall(block: suspend () -> T): T? {
+suspend fun <T> ApplicationCall.handleUseCaseCall(
+    operationTimeout: Duration = EDO_OPERATION_TIMEOUT,
+    block: suspend () -> T
+): T? {
     return try {
-        block()
+        withTimeout(operationTimeout) { block() }
+    } catch (_: TimeoutCancellationException) {
+        respondError(
+            status = HttpStatusCode.ServiceUnavailable,
+            message = "CPI operation exceeded the 8-second service budget.",
+            errorCode = ApiErrorCode.CPI_PROVIDER_UNAVAILABLE,
+            retryable = true
+        )
+        null
     } catch (e: CancellationException) {
-        throw e
+        throw (e.cause as? CancellationException ?: e)
     } catch (e: CpiProviderUnavailableException) {
         respondError(
             status = HttpStatusCode.ServiceUnavailable,
@@ -73,6 +88,8 @@ suspend inline fun <T> ApplicationCall.handleUseCaseCall(block: suspend () -> T)
         null
     }
 }
+
+internal val EDO_OPERATION_TIMEOUT: Duration = 8.seconds
 
 @Serializable
 data class ApiErrorResponse(

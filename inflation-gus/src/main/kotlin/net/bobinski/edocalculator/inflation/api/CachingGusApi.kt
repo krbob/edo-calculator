@@ -16,6 +16,7 @@ internal class CachingGusApi(
     private val delegate: GusApi,
     private val currentTimeProvider: CurrentTimeProvider,
     private val ttl: Duration = 1.hours,
+    private val metrics: GusMetrics = GusMetrics.NO_OP,
     prefetchScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     prefetchOnInit: Boolean = true
 ) : GusApi {
@@ -40,22 +41,34 @@ internal class CachingGusApi(
         val key = CacheKey(attribute, year)
         val lock = locks.computeIfAbsent(key) { Mutex() }
 
-        cache[key]?.takeIf { it.isFresh(year) }?.let { return it.data }
+        cache[key]?.takeIf { it.isFresh(year) }?.let { entry ->
+            metrics.recordCacheRequest(attribute, GusCacheResult.HIT)
+            return entry.data
+        }
 
         return lock.withLock {
-            cache[key]?.takeIf { it.isFresh(year) }?.let { return@withLock it.data }
+            cache[key]?.takeIf { it.isFresh(year) }?.let { entry ->
+                metrics.recordCacheRequest(attribute, GusCacheResult.HIT)
+                return@withLock entry.data
+            }
 
             val refreshed = try {
                 delegate.fetchYearInflation(attribute, year)
             } catch (e: CancellationException) {
+                metrics.recordCacheRequest(attribute, GusCacheResult.CANCELLED)
                 throw e
             } catch (e: Exception) {
-                cache[key]?.let { return@withLock it.data }
+                cache[key]?.let { entry ->
+                    metrics.recordCacheRequest(attribute, GusCacheResult.STALE_FALLBACK)
+                    return@withLock entry.data
+                }
+                metrics.recordCacheRequest(attribute, GusCacheResult.LOAD_ERROR)
                 throw e
             }
 
             val entry = createEntry(year, refreshed)
             cache[key] = entry
+            metrics.recordCacheRequest(attribute, GusCacheResult.LOAD)
             entry.data
         }
     }

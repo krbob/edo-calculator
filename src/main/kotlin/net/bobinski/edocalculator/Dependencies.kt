@@ -11,6 +11,6 @@ import org.koin.logger.slf4jLogger
 fun Application.configureDependencies() {
     install(Koin) {
         slf4jLogger()
-        modules(CoreModule, ClientModule, DomainModule, GusInflationModule)
+        modules(MetricsModule, CoreModule, ClientModule, DomainModule, GusInflationModule)
     }
 }

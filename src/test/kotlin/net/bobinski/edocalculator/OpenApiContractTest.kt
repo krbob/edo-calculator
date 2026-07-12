@@ -25,6 +25,7 @@ import net.bobinski.edocalculator.route.EdoResponse
 import net.bobinski.edocalculator.route.InflationResponse
 import net.bobinski.edocalculator.route.MonthlyInflationPointResponse
 import net.bobinski.edocalculator.route.MonthlyInflationSeriesResponse
+import net.bobinski.edocalculator.route.REGISTERED_GET_PATHS
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -40,6 +41,10 @@ class OpenApiContractTest {
 
         assertEquals("3.1.0", openApi.openapi)
         assertEquals(EXPECTED_PATHS, openApi.paths.keys)
+        assertEquals(
+            EXPECTED_PATHS + EXPECTED_PARAMETERS.keys.map { path -> path.removePrefix("/v1") },
+            REGISTERED_GET_PATHS
+        )
         assertEquals(
             mapOf(
                 "404" to "#/components/responses/RouteNotFound",
@@ -228,7 +233,8 @@ class OpenApiContractTest {
             "/v1/inflation/between",
             "/v1/inflation/monthly",
             "/healthz",
-            "/readyz"
+            "/readyz",
+            "/metrics"
         )
         val EXPECTED_PARAMETERS = mapOf(
             "/v1/edo/value" to requiredAndOptional(

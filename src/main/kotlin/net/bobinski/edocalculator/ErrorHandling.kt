@@ -12,20 +12,6 @@ import net.bobinski.edocalculator.route.respondError
 
 fun Application.configureErrorHandling() {
     install(StatusPages) {
-        status(HttpStatusCode.NotFound) { call, status ->
-            call.respondError(
-                status = status,
-                message = "Route not found.",
-                errorCode = ApiErrorCode.ROUTE_NOT_FOUND
-            )
-        }
-        status(HttpStatusCode.MethodNotAllowed) { call, status ->
-            call.respondError(
-                status = status,
-                message = "Method not allowed.",
-                errorCode = ApiErrorCode.METHOD_NOT_ALLOWED
-            )
-        }
         exception<Exception> { call, cause ->
             if (cause is CancellationException) throw cause
             call.application.log.error("Unhandled application error", cause)

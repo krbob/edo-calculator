@@ -16,6 +16,8 @@ tags:
     description: Polish CPI calculations backed by GUS data.
   - name: Probes
     description: Process liveness and application dependency-graph readiness.
+  - name: Observability
+    description: Operational telemetry intended for an internal Prometheus scraper.
 x-global-error-responses:
   "404": "#/components/responses/RouteNotFound"
   "405": "#/components/responses/MethodNotAllowed"
@@ -202,6 +204,22 @@ paths:
               schema:
                 type: string
                 enum: [not ready]
+  /metrics:
+    get:
+      tags: [Observability]
+      operationId: getPrometheusMetrics
+      summary: Scrape application metrics
+      description: Exposes Prometheus text format and should be network-restricted in production.
+      responses:
+        "200":
+          description: Current process, HTTP, cache, retry, and GUS metrics.
+          headers:
+            X-Request-ID:
+              $ref: "#/components/headers/RequestId"
+          content:
+            text/plain:
+              schema:
+                type: string
 components:
   headers:
     RequestId:

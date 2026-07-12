@@ -14,6 +14,7 @@ dependencies {
     implementation(libs.koin.core)
     implementation(libs.ktor.client.core)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.micrometer.core)
     testImplementation(project("::core"))
     testImplementation(platform(libs.junit.bom))
     testImplementation(libs.junit.jupiter)

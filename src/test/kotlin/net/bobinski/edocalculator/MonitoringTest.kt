@@ -114,6 +114,26 @@ class MonitoringTest {
         }
     }
 
+    @Test
+    fun `does not emit access log noise for metrics scrapes`() {
+        val logger = LoggerFactory.getLogger("io.ktor.test") as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            testApplication {
+                application { module() }
+
+                client.get("/metrics")
+            }
+
+            assertTrue(appender.list.none { event -> event.formattedMessage.contains("GET - /metrics") })
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
+    }
+
     private companion object {
         val SAFE_REQUEST_ID_PATTERN = Regex("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
     }

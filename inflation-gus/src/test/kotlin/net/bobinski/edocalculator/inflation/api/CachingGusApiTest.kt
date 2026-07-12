@@ -1,11 +1,13 @@
 package net.bobinski.edocalculator.inflation.api
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import kotlin.time.Duration.Companion.days
@@ -14,6 +16,35 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.test.assertFailsWith
 
 class CachingGusApiTest {
+
+    @Test
+    fun `cache metrics distinguish loads and hits without year cardinality`() = runTest {
+        val year = 2022
+        val registry = SimpleMeterRegistry()
+        val metrics = MicrometerGusMetrics(registry)
+        val delegate = CountingGusApi(
+            responses = mutableMapOf(key(year) to { pts(year, 12) })
+        )
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2025)),
+            metrics = metrics,
+            prefetchOnInit = false
+        )
+
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+
+        assertEquals(
+            1.0,
+            registry.counter("edo.gus.cache.requests", "attribute", "monthly", "result", "load").count()
+        )
+        assertEquals(
+            1.0,
+            registry.counter("edo.gus.cache.requests", "attribute", "monthly", "result", "hit").count()
+        )
+        assertTrue(registry.meters.none { meter -> meter.id.tags.any { tag -> tag.key == "year" } })
+    }
 
     @Test
     fun `complete past year is cached forever`() = runTest {
@@ -138,6 +169,8 @@ class CachingGusApiTest {
     fun `stale-if-error returns old data when refresh fails`() = runTest {
         val year = 2025
         val time = MutableCurrentTimeProvider(fixedNow(year, month = 11, day = 5))
+        val registry = SimpleMeterRegistry()
+        val metrics = MicrometerGusMetrics(registry)
         val delegate = CountingGusApi(
             responses = mutableMapOf(
                 key(year) to { pts(year, 9, "100.0") }
@@ -147,6 +180,7 @@ class CachingGusApiTest {
             delegate = delegate,
             currentTimeProvider = time,
             ttl = 1.minutes,
+            metrics = metrics,
             prefetchOnInit = false
         )
 
@@ -160,6 +194,16 @@ class CachingGusApiTest {
         assertEquals(2, delegate.calls.getValue(key(year)))
         assertSame(first, second)
         assertEquals(9, second.size)
+        assertEquals(
+            1.0,
+            registry.counter(
+                "edo.gus.cache.requests",
+                "attribute",
+                "monthly",
+                "result",
+                "stale_fallback"
+            ).count()
+        )
     }
 
     @Test

@@ -9,7 +9,7 @@ Serwer HTTP napisany w Ktorze, który udostępnia obliczenia dla obligacji skarb
 1. Upewnij się, że masz zainstalowanego Dockera.
 2. Uruchom kontener: `docker run --rm -p 8080:8080 ghcr.io/krbob/edo-calculator:latest`.
 3. Serwer będzie dostępny pod adresem `http://localhost:8080`.
-4. Liveness procesu jest dostępne pod `GET /healthz`, a readiness grafu zależności aplikacji pod `GET /readyz`. Readiness nie odpytuje zewnętrznego GUS, aby jego awaria nie wyłączała wszystkich replik. Obraz Jib nie definiuje wbudowanego Docker `HEALTHCHECK`.
+4. Liveness procesu jest dostępne pod `GET /healthz`, readiness grafu zależności aplikacji pod `GET /readyz`, a metryki Prometheus pod `GET /metrics`. Readiness nie odpytuje zewnętrznego GUS, aby jego awaria nie wyłączała wszystkich replik. Obraz Jib nie definiuje wbudowanego Docker `HEALTHCHECK`.
 
 Alternatywnie, możesz użyć Docker Compose:
 
@@ -26,7 +26,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 
 ## Konwencje odpowiedzi
 
-- Wszystkie endpointy zwracają `Content-Type: application/json`. Produkcyjne odpowiedzi są kompaktowe, aby ograniczyć koszt dużych historii; przykłady poniżej są sformatowane wyłącznie dla czytelności.
+- Endpointy domenowe zwracają `Content-Type: application/json`; probe'y i `/metrics` używają formatu tekstowego właściwego dla danego endpointu. Produkcyjne odpowiedzi JSON są kompaktowe, aby ograniczyć koszt dużych historii; przykłady poniżej są sformatowane wyłącznie dla czytelności.
 - Wartości dziesiętne są serializowane jako tekst (`"123.45"`) – wynika to z dedykowanego serializatora `BigDecimal`.
 - Pojęcia „dzisiaj” i „bieżący miesiąc” używają polskiej strefy biznesowej `Europe/Warsaw`, niezależnie od strefy hosta lub kontenera.
 - Odpowiedzi wyceny zawierają datę zapadalności `maturityDate` oraz status `ACTIVE` lub `MATURED`. Od dnia zapadalności wartość nie nalicza już odsetek.
@@ -34,13 +34,9 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 - Błędy zachowują kompatybilne pole `error` i dodatkowo zwracają stabilne `errorCode`, flagę `retryable` oraz `requestId` zgodny z nagłówkiem odpowiedzi.
 - Ten sam kontrakt błędu obejmuje walidację, niedostępność CPI, nieznane trasy, niedozwolone metody i nieobsłużone wyjątki aplikacji.
 
-## Endpointy
-
-Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo/value` i `/v1/inflation/monthly`). Dotychczasowe ścieżki bez prefiksu pozostają kompatybilnymi aliasami na czas migracji klientów.
-
 ## OpenAPI
 
-Utrzymywany kontrakt API znajduje się w pliku [`openapi/edo-calculator-v1.yaml`](openapi/edo-calculator-v1.yaml). Obejmuje wszystkie kanoniczne trasy `/v1`, probe'y `/healthz` i `/readyz`, parametry, schematy odpowiedzi oraz stabilny model błędu. Rozszerzenie `x-legacy-alias` wskazuje odpowiadającą trasę bez prefiksu.
+Utrzymywany kontrakt API znajduje się w pliku [`openapi/edo-calculator-v1.yaml`](openapi/edo-calculator-v1.yaml). Obejmuje wszystkie kanoniczne trasy `/v1`, probe'y `/healthz` i `/readyz`, scrape `/metrics`, parametry, schematy odpowiedzi oraz stabilny model błędu. Rozszerzenie `x-legacy-alias` wskazuje odpowiadającą trasę bez prefiksu.
 
 Specyfikacja nie jest publikowana przez aplikację jako Swagger UI. Test `OpenApiContractTest` parsuje ją oficjalnym Swagger Parserem i pilnuje zgodności tras, parametrów, modeli serializacji, kodów błędów i aliasów legacy. Przykład wygenerowania klienta Kotlin do ignorowanego katalogu `build/`:
 
@@ -50,6 +46,44 @@ docker run --rm -v "$PWD:/local" openapitools/openapi-generator-cli generate \
   -g kotlin \
   -o /local/build/generated/edo-client
 ```
+
+## Obserwowalność
+
+`GET /metrics` zwraca format tekstowy Prometheus. Endpoint powinien być dostępny wyłącznie z sieci monitoringu; aplikacja nie dodaje do metryk `requestId`, surowego URL ani segmentu nieznanej trasy. Sam scrape `/metrics` jest wyłączony z timera HTTP i access logu (bieżący scrape pozostaje widoczny w gauge aktywnych żądań), nieznane trasy współdzielą etykietę `route="/{...}"`, a niestandardowe metody HTTP wartość `method="OTHER"`.
+
+Najważniejsze serie:
+
+- `edo_http_server_requests_seconds` – timer HTTP z ograniczonymi etykietami `method`, `route` i `status`; eksportuje count, sum oraz histogram z progami SLO 50 ms–8 s i maksymalną oczekiwaną wartością 10 s,
+- `edo_gus_fetch_seconds` – czas logicznego pobrania roku GUS według `attribute`, `endpoint` i `outcome`, bez etykiety roku,
+- `edo_gus_cache_requests_total` – wyniki `hit`, `load`, `stale_fallback`, `load_error` i `cancelled`,
+- `edo_gus_retries_total` – dodatkowe próby według powodu `rate_limited` lub `server_error`,
+- standardowe metryki JVM i `edo_http_server_requests_active`.
+
+Przykładowe zapytania PromQL:
+
+```promql
+sum by (route, status) (rate(edo_http_server_requests_seconds_count[5m]))
+histogram_quantile(0.95, sum by (le, route) (rate(edo_http_server_requests_seconds_bucket[5m])))
+sum by (result) (rate(edo_gus_cache_requests_total[5m]))
+```
+
+## Budżet timeout i retry
+
+Budżety są ułożone od callerów do najdalszej zależności tak, aby wewnętrzna usługa zakończyła pracę przed klientem:
+
+| odcinek | budżet | zachowanie |
+|---|---:|---|
+| Portfolio → EDO: value/inflation | 10 s | timeout klienta Portfolio |
+| Portfolio → EDO: history | 20 s | większy budżet na odpowiedź z maks. 4000 punktów |
+| pojedyncza operacja domenowa EDO | 8 s | przekroczenie zwraca `503`, `CPI_PROVIDER_UNAVAILABLE`, `retryable=true` |
+| pojedyncza próba EDO → GUS | connect 2 s, request/socket 3 s | zawsze podporządkowana 8-sekundowemu budżetowi operacji |
+| retry GUS | maks. 3 próby | tylko `429` i `5xx`; opóźnienia 100/200 ms, a `Retry-After` jest ograniczony do 1 s |
+
+Limit GUS 5 żądań/s i 5 równoległych wywołań również zużywa budżet 8 s. Trafienie cache nie wykonuje requestu GUS, a `stale_fallback` może zwrócić ostatnie dane po nieudanym odświeżeniu. EDO nie wykonuje retry dla timeoutów transportowych ani błędów nieretrywalnych, co zapobiega mnożeniu prób pomiędzy warstwami.
+
+## Endpointy
+
+Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo/value` i `/v1/inflation/monthly`). Dotychczasowe ścieżki bez prefiksu pozostają kompatybilnymi aliasami na czas migracji klientów.
 
 ### GET `/v1/edo/value`
 

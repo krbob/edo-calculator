@@ -22,9 +22,9 @@ internal class AppHttpClient {
                 json(json)
             }
             install(HttpTimeout) {
-                connectTimeoutMillis = 5_000
-                requestTimeoutMillis = 10_000
-                socketTimeoutMillis = 10_000
+                connectTimeoutMillis = GUS_CONNECT_TIMEOUT_MILLIS
+                requestTimeoutMillis = GUS_REQUEST_TIMEOUT_MILLIS
+                socketTimeoutMillis = GUS_SOCKET_TIMEOUT_MILLIS
             }
             defaultRequest {
                 accept(ContentType.Application.Json)
@@ -40,3 +40,7 @@ internal class AppHttpClient {
         }
     }
 }
+
+internal const val GUS_CONNECT_TIMEOUT_MILLIS = 2_000L
+internal const val GUS_REQUEST_TIMEOUT_MILLIS = 3_000L
+internal const val GUS_SOCKET_TIMEOUT_MILLIS = 3_000L
