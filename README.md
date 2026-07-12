@@ -29,6 +29,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 - Wszystkie endpointy zwracają `Content-Type: application/json` i korzystają z pretty-print.
 - Wartości dziesiętne są serializowane jako tekst (`"123.45"`) – wynika to z dedykowanego serializatora `BigDecimal`.
 - Pojęcia „dzisiaj” i „bieżący miesiąc” używają polskiej strefy biznesowej `Europe/Warsaw`, niezależnie od strefy hosta lub kontenera.
+- Odpowiedzi wyceny zawierają datę zapadalności `maturityDate` oraz status `ACTIVE` lub `MATURED`. Od dnia zapadalności wartość nie nalicza już odsetek.
 
 ## Endpointy
 
@@ -61,6 +62,8 @@ curl "http://localhost:8080/edo/value?purchaseYear=2019&purchaseMonth=7&purchase
 {
     "purchaseDate": "2019-07-15",
     "asOf": "2025-11-04",
+    "maturityDate": "2029-07-15",
+    "status": "ACTIVE",
     "firstPeriodRate": "2.70",
     "margin": "1.25",
     "principal": "1000.00",
@@ -172,6 +175,8 @@ curl "http://localhost:8080/edo/value/at?purchaseYear=2019&purchaseMonth=7&purch
 {
     "purchaseDate": "2019-07-15",
     "asOf": "2022-05-01",
+    "maturityDate": "2029-07-15",
+    "status": "ACTIVE",
     "firstPeriodRate": "2.70",
     "margin": "1.25",
     "principal": "1000.00",

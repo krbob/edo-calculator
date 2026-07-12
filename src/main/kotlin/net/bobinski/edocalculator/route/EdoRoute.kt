@@ -9,6 +9,7 @@ import io.ktor.server.routing.get
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import net.bobinski.edocalculator.domain.edo.EdoStatus
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoHistoryUseCase
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoValueUseCase
@@ -106,6 +107,8 @@ private suspend fun ApplicationCall.respondWithEdoValue(
         EdoResponse(
             purchaseDate = result.purchaseDate.toString(),
             asOf = result.asOf.toString(),
+            maturityDate = result.maturityDate.toString(),
+            status = result.status,
             firstPeriodRate = result.firstPeriodRate,
             margin = result.margin,
             principal = result.principal,
@@ -175,6 +178,8 @@ private suspend fun ApplicationCall.respondWithEdoHistory(
 data class EdoResponse(
     val purchaseDate: String,
     val asOf: String,
+    val maturityDate: String,
+    val status: EdoStatus,
     @Contextual val firstPeriodRate: BigDecimal,
     @Contextual val margin: BigDecimal,
     @Contextual val principal: BigDecimal,

@@ -9,6 +9,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.number
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
+import net.bobinski.edocalculator.domain.edo.EdoStatus
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -39,6 +40,8 @@ class CalculateEdoHistoryUseCaseTest {
             CalculateEdoValueUseCase.Result(
                 purchaseDate = LocalDate(2025, 1, 1),
                 asOf = asOf,
+                maturityDate = LocalDate(2035, 1, 1),
+                status = EdoStatus.ACTIVE,
                 firstPeriodRate = BigDecimal("7.25"),
                 margin = BigDecimal("1.25"),
                 principal = BigDecimal("100.00"),
@@ -95,6 +98,8 @@ class CalculateEdoHistoryUseCaseTest {
             CalculateEdoValueUseCase.Result(
                 purchaseDate = LocalDate(2025, 1, 3),
                 asOf = asOf,
+                maturityDate = LocalDate(2035, 1, 3),
+                status = EdoStatus.ACTIVE,
                 firstPeriodRate = BigDecimal("7.25"),
                 margin = BigDecimal("1.25"),
                 principal = BigDecimal("100.00"),

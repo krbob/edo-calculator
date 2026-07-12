@@ -19,6 +19,7 @@ import kotlinx.serialization.json.Json
 import net.bobinski.edocalculator.core.dependency.CoreModule
 import net.bobinski.edocalculator.domain.error.CpiProviderUnavailableException
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
+import net.bobinski.edocalculator.domain.edo.EdoStatus
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoHistoryUseCase
@@ -218,6 +219,8 @@ class EdoRouteTest {
         val expectedResult = CalculateEdoValueUseCase.Result(
             purchaseDate = purchaseDate,
             asOf = asOf,
+            maturityDate = LocalDate(2033, 1, 1),
+            status = EdoStatus.ACTIVE,
             firstPeriodRate = BigDecimal("7.25"),
             margin = BigDecimal("1.25"),
             principal = BigDecimal("100"),
@@ -256,6 +259,8 @@ class EdoRouteTest {
             val body = json.decodeFromString<EdoResponse>(response.bodyAsText())
             assertEquals(expectedResult.purchaseDate.toString(), body.purchaseDate)
             assertEquals(expectedResult.asOf.toString(), body.asOf)
+            assertEquals(expectedResult.maturityDate.toString(), body.maturityDate)
+            assertEquals(expectedResult.status, body.status)
             assertEquals(expectedResult.firstPeriodRate, body.firstPeriodRate)
             assertEquals(expectedResult.margin, body.margin)
             assertEquals(expectedResult.principal, body.principal)
@@ -291,6 +296,8 @@ class EdoRouteTest {
         val expectedResult = CalculateEdoValueUseCase.Result(
             purchaseDate = purchaseDate,
             asOf = asOf,
+            maturityDate = LocalDate(2033, 1, 1),
+            status = EdoStatus.ACTIVE,
             firstPeriodRate = BigDecimal("7.25"),
             margin = BigDecimal("1.25"),
             principal = BigDecimal("100"),
@@ -332,6 +339,8 @@ class EdoRouteTest {
             val body = json.decodeFromString<EdoResponse>(response.bodyAsText())
             assertEquals(expectedResult.purchaseDate.toString(), body.purchaseDate)
             assertEquals(expectedResult.asOf.toString(), body.asOf)
+            assertEquals(expectedResult.maturityDate.toString(), body.maturityDate)
+            assertEquals(expectedResult.status, body.status)
             assertEquals(expectedResult.firstPeriodRate, body.firstPeriodRate)
             assertEquals(expectedResult.margin, body.margin)
             assertEquals(expectedResult.principal, body.principal)
@@ -459,6 +468,8 @@ class EdoRouteTest {
         val expectedResult = CalculateEdoValueUseCase.Result(
             purchaseDate = purchaseDate,
             asOf = asOf,
+            maturityDate = LocalDate(2033, 1, 1),
+            status = EdoStatus.ACTIVE,
             firstPeriodRate = BigDecimal("7.25"),
             margin = BigDecimal("1.25"),
             principal = BigDecimal("100"),

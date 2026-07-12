@@ -8,6 +8,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.YearMonth
 import kotlinx.datetime.number
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
+import net.bobinski.edocalculator.domain.edo.EdoStatus
 import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -182,6 +183,40 @@ class CalculateEdoValueUseCaseTest {
         assertEquals(BigDecimal("0.00"), result.edoValue.totalAccruedInterest)
         assertEquals(1, result.edoValue.periods.size)
         assertEquals(0, result.edoValue.periods.single().daysElapsed)
+    }
+
+    @Test
+    fun `reports maturity boundary and stops accruing after maturity`() = runTest {
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = FakeInflationProvider(emptyMap()),
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2034, 1, 1))
+        )
+        val purchaseDate = LocalDate(2023, 1, 1)
+
+        val beforeMaturity = useCase(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            asOf = LocalDate(2032, 12, 31)
+        )
+        val atMaturity = useCase(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            asOf = LocalDate(2033, 1, 1)
+        )
+        val afterMaturity = useCase(
+            purchaseDate = purchaseDate,
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            asOf = LocalDate(2034, 1, 1)
+        )
+
+        assertEquals(LocalDate(2033, 1, 1), beforeMaturity.maturityDate)
+        assertEquals(EdoStatus.ACTIVE, beforeMaturity.status)
+        assertEquals(EdoStatus.MATURED, atMaturity.status)
+        assertEquals(EdoStatus.MATURED, afterMaturity.status)
+        assertEquals(atMaturity.edoValue, afterMaturity.edoValue)
     }
 
     @Test

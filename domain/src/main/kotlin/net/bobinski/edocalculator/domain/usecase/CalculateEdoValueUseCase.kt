@@ -9,6 +9,7 @@ import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import net.bobinski.edocalculator.core.time.CurrentTimeProvider
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
+import net.bobinski.edocalculator.domain.edo.EdoStatus
 import net.bobinski.edocalculator.domain.edo.EdoValue
 import net.bobinski.edocalculator.domain.inflation.InflationProvider
 import net.bobinski.edocalculator.domain.validation.CalculationLimits
@@ -49,6 +50,7 @@ class CalculateEdoValueUseCase(
         )
 
         val normalizedPrincipal = principal.setScale(2, RoundingMode.HALF_UP)
+        val maturityDate = purchaseDate.plus(TOTAL_PERIODS, DateTimeUnit.YEAR)
         var currentPrincipal = normalizedPrincipal
         var totalInterest = BigDecimal.ZERO
         val periods = mutableListOf<EdoPeriodBreakdown>()
@@ -116,6 +118,8 @@ class CalculateEdoValueUseCase(
         return Result(
             purchaseDate = purchaseDate,
             asOf = evaluationDate,
+            maturityDate = maturityDate,
+            status = if (evaluationDate >= maturityDate) EdoStatus.MATURED else EdoStatus.ACTIVE,
             firstPeriodRate = firstPeriodRate.setScale(2, RoundingMode.HALF_UP),
             margin = margin.setScale(2, RoundingMode.HALF_UP),
             principal = normalizedPrincipal,
@@ -158,6 +162,8 @@ class CalculateEdoValueUseCase(
     data class Result(
         val purchaseDate: LocalDate,
         val asOf: LocalDate,
+        val maturityDate: LocalDate,
+        val status: EdoStatus,
         val firstPeriodRate: BigDecimal,
         val margin: BigDecimal,
         val principal: BigDecimal,
