@@ -76,6 +76,13 @@ class MonitoringTest {
         assertEquals(false, error.retryable)
     }
 
+    @Test
+    fun `renders request id from MDC in the production log pattern`() {
+        val logbackConfig = checkNotNull(javaClass.getResource("/logback.xml")).readText()
+
+        assertTrue(logbackConfig.contains("[requestId=%X{requestId}]"))
+    }
+
     private companion object {
         val SAFE_REQUEST_ID_PATTERN = Regex("[A-Za-z0-9][A-Za-z0-9._:-]{0,127}")
     }
