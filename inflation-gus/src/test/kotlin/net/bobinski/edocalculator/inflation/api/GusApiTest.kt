@@ -201,7 +201,7 @@ class GusApiTest : KoinTest {
         val points = api.fetchYearInflation(GusAttribute.MONTHLY, 2015)
 
         assertEquals(12, points.size)
-        assertEquals((241..252).toList(), points.map { it.periodId })
+        assertEquals((247..258).toList(), points.map { it.periodId })
     }
 
     @Test
@@ -256,6 +256,25 @@ class GusApiTest : KoinTest {
 
         val client = http {
             respond(payloadWithGap, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
+
+        assertFailsWith<MissingCpiDataException> {
+            api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        }
+    }
+
+    @Test
+    fun `current year missing January is rejected instead of shifting months`() = runTest {
+        val year = 2025
+        val payloadWithoutJanuary = """
+        [
+          {"id-daty": $year, "id-okres": 248, "wartosc": 100.0},
+          {"id-daty": $year, "id-okres": 249, "wartosc": 100.1}
+        ]
+    """.trimIndent()
+        val client = http {
+            respond(payloadWithoutJanuary, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
         }
         val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)))
 
@@ -412,12 +431,12 @@ private fun payloadForYear(year: Int): String = """
 
 private fun fullPayloadForYear(year: Int): String =
     (1..12).joinToString(prefix = "[", postfix = "]", separator = ",") { i ->
-        """{"id-daty": $year, "id-okres": ${240 + i}, "wartosc": ${100 + i / 10.0}}"""
+        """{"id-daty": $year, "id-okres": ${246 + i}, "wartosc": ${100 + i / 10.0}}"""
     }
 
 private fun partialPayloadForYear(year: Int, months: Int): String =
     (1..months).joinToString(prefix = "[", postfix = "]", separator = ",") { i ->
-        """{"id-daty": $year, "id-okres": ${240 + i}, "wartosc": ${100 + i / 10.0}}"""
+        """{"id-daty": $year, "id-okres": ${246 + i}, "wartosc": ${100 + i / 10.0}}"""
     }
 
 private fun variablePagePayload(year: Int, periodId: Int, miaraId: Int): String {

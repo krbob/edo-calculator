@@ -80,6 +80,25 @@ class GusInflationProviderTest {
     }
 
     @Test
+    fun `period id maps February to February when January is absent`() = runTest {
+        val api = FakeApi(
+            monthly = mapOf(
+                2026 to listOf(
+                    GusIndicatorPoint(year = 2026, periodId = 248, value = BigDecimal("102.0"))
+                )
+            )
+        )
+        val provider = GusInflationProvider(api)
+
+        val result = provider.getInflationMultiplier(YearMonth(2026, 2), YearMonth(2026, 3))
+
+        assertEquals(BigDecimal("1.020000"), result)
+        assertFailsWith<MissingCpiDataException> {
+            provider.getInflationMultiplier(YearMonth(2026, 1), YearMonth(2026, 2))
+        }
+    }
+
+    @Test
     fun `yearly multiplier returns expected value`() = runTest {
         val api = FakeApi(
             yearly = mapOf(
@@ -107,7 +126,7 @@ private fun yearPoints(year: Int, vararg values: String): List<GusIndicatorPoint
     values.mapIndexed { i, v ->
         GusIndicatorPoint(
             year = year,
-            periodId = 240 + i + 1,
+            periodId = 247 + i,
             value = BigDecimal(v)
         )
     }

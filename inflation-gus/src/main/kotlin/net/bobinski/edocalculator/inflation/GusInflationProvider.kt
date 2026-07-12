@@ -10,6 +10,7 @@ import net.bobinski.edocalculator.domain.error.MissingCpiDataException
 import net.bobinski.edocalculator.inflation.api.GusApi
 import net.bobinski.edocalculator.inflation.api.GusAttribute
 import net.bobinski.edocalculator.inflation.api.GusIndicatorPoint
+import net.bobinski.edocalculator.inflation.api.GUS_MONTHLY_PERIOD_IDS
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -60,24 +61,20 @@ internal class GusInflationProvider internal constructor(private val api: GusApi
                 .toMap()
         }
 
-    /**
-     * Converts raw GUS indicator points into a month-keyed multiplier map.
-     *
-     * Month assignment relies on sorting by [GusIndicatorPoint.periodId]:
-     * the first entry after sorting is January, the second is February, etc.
-     * This works because GUS assigns consecutive, ascending periodIds where
-     * the sort order maps 1:1 to calendar months. [GusApi.fetchYearInflation]
-     * validates that there are no gaps in the periodId sequence.
-     */
+    /** Converts GUS period identifiers to their explicit calendar months. */
     private fun Map<Int, List<GusIndicatorPoint>>.toMonthlyMultipliers(): Map<YearMonth, BigDecimal> {
         val result = mutableMapOf<YearMonth, BigDecimal>()
 
         forEach { entry ->
             val year = entry.key
             entry.value
-                .sortedBy { it.periodId }
-                .forEachIndexed { idx: Int, point: GusIndicatorPoint ->
-                    val month = idx + 1
+                .forEach { point ->
+                    val month = point.calendarMonthNumber()
+                        ?: throw MissingCpiDataException.forPeriodMismatch(
+                            year = year,
+                            expected = GUS_MONTHLY_PERIOD_IDS,
+                            actual = entry.value.map { it.periodId }
+                        )
                     val multiplier = point.value.divide(BigDecimal(100), mc)
                     result[YearMonth(year, month)] = multiplier
                 }

@@ -172,22 +172,40 @@ internal class GusApiImpl(
             .distinctBy { it.periodId }
             .sortedBy { it.periodId }
 
-        normalized.ensureCompleteness(year)
-        normalized.ensureNoGaps(year)
+        normalized.ensureExpectedPeriodCoverage(year)
 
         return normalized
     }
 
     private fun currentYear(): Int = currentTimeProvider.yearMonth().year
 
-    private fun List<GusIndicatorPoint>.ensureCompleteness(year: Int) {
-        if (year == currentYear()) return
-        if (isAllowedIncompletePreviousYear(year)) return
-        if (size != EXPECTED_MONTHS) {
+    private fun List<GusIndicatorPoint>.ensureExpectedPeriodCoverage(year: Int) {
+        if (size > EXPECTED_MONTHS) {
             throw MissingCpiDataException.forIncompleteYear(
                 year = year,
                 expected = EXPECTED_MONTHS,
                 actual = size
+            )
+        }
+
+        val expectedCount = when {
+            year == currentYear() -> size
+            isAllowedIncompletePreviousYear(year) -> EXPECTED_MONTHS - 1
+            size == EXPECTED_MONTHS -> EXPECTED_MONTHS
+            else -> throw MissingCpiDataException.forIncompleteYear(
+                year = year,
+                expected = EXPECTED_MONTHS,
+                actual = size
+            )
+        }
+        val expectedPeriods = GUS_MONTHLY_PERIOD_IDS.take(expectedCount)
+        val actualPeriods = map { it.periodId }
+
+        if (actualPeriods != expectedPeriods || any { it.year != year }) {
+            throw MissingCpiDataException.forPeriodMismatch(
+                year = year,
+                expected = expectedPeriods,
+                actual = actualPeriods
             )
         }
     }
@@ -198,21 +216,6 @@ internal class GusApiImpl(
         if (!isPreviousYear) return false
         if (now.month.number != GRACE_PERIOD_MONTH) return false
         return size == EXPECTED_MONTHS - 1
-    }
-
-    private fun List<GusIndicatorPoint>.ensureNoGaps(year: Int) {
-        val gaps = asSequence()
-            .map { it.periodId }
-            .zipWithNext()
-            .flatMap { (a, b) ->
-                val diff = b - a
-                if (diff > 1) ((a + 1) until b) else emptyList()
-            }
-            .toList()
-
-        if (gaps.isNotEmpty()) {
-            throw MissingCpiDataException.forMissingPeriods(year, gaps)
-        }
     }
 
     companion object {
@@ -226,8 +229,6 @@ internal class GusApiImpl(
         private const val COICOP_2018_TOTAL_POSITION = 14916914
         private const val HOUSEHOLD_TOTAL_POSITION = 6902025
         private const val VARIABLE_PAGE_SIZE = 5000
-        private const val GUS_PERIOD_JANUARY = 247
-        private const val GUS_PERIOD_DECEMBER = 258
     }
 }
 

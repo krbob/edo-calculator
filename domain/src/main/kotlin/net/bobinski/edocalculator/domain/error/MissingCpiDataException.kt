@@ -15,6 +15,15 @@ class MissingCpiDataException(message: String) : RuntimeException(message) {
                 "Missing CPI period data for $year: ${periods.joinToString(",")}"
             )
 
+        fun forPeriodMismatch(
+            year: Int,
+            expected: Iterable<Int>,
+            actual: Iterable<Int>
+        ): MissingCpiDataException = MissingCpiDataException(
+            "Unexpected CPI periods for $year: expected ${expected.joinToString(",")}, " +
+                "got ${actual.joinToString(",")}"
+        )
+
         fun forMonth(month: YearMonth): MissingCpiDataException =
             MissingCpiDataException("No CPI data for $month")
     }
