@@ -119,12 +119,14 @@ Kanoniczne, wersjonowane endpointy są dostępne z prefiksem `/v1` (np. `/v1/edo
   | `purchaseDay`     | integer  | tak      | dzień zakupu (1–31, zgodnie z kalendarzem)            |
   | `firstPeriodRate` | decimal  | tak      | kupon procentowy w pierwszym okresie (np. `2.70`)     |
   | `margin`          | decimal  | tak      | marża dodawana po pierwszym okresie                    |
-  | `principal`       | decimal  | nie      | nominał inwestycji w PLN (domyślnie `100.00`)          |
+  | `principal`       | decimal  | nie      | analityczna baza wyceny w PLN (domyślnie `100.00`)     |
 
 > Jeśli nie przekażesz parametru `principal`, zostanie użyta wartość domyślna `100.00` PLN (dotyczy również końcówki `/v1/edo/value/at`).
 > Jeśli przekażesz `principal`, musi to być poprawna liczba dziesiętna, w przeciwnym razie serwer zwróci `400 Bad Request`.
 > Obsługiwane są daty zakupu od 2000 roku, principal do `1000000000000`, stopy i marża do `1000%`, maksymalnie 18 cyfr precyzji i 6 miejsc dziesiętnych. Dłuższe lub bardziej precyzyjne wartości są odrzucane kodem `400` przed rozpoczęciem obliczeń.
 > Pola procentowe odpowiedzi zachowują dokładną precyzję stopy użytej w obliczeniu. Nie są niezależnie zaokrąglane do dwóch miejsc; do dwóch miejsc zaokrąglane są dopiero raportowane wartości pieniężne.
+
+Oficjalny nominał jednej obligacji EDO wynosi 100 PLN, jednak `principal` jest świadomie zachowany jako agregowana, analityczna baza wyceny pro-rata. Endpoint nie sprawdza wykonalności zakupu ani wielokrotności 100 PLN: zarówno `/v1`, jak i aliasy legacy od początku dopuszczają dowolną nieujemną wartość, a zawężenie złamałoby istniejący kontrakt. Portfolio pobiera wartość jednostki dla `principal=100` i skaluje ją ilością; klient modelujący rzeczywiste zlecenie powinien osobno wymagać całkowitej liczby obligacji. Dla kwot niebędących wielokrotnością 100 wynik jest wyceną analityczną z zaokrągleniem kwot agregatu, a nie gwarantowaną kwotą rozliczenia emitenta. Zasady pojedynczej obligacji opisuje [oficjalna oferta EDO](https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/).
 
 #### Przykładowe zapytanie
 

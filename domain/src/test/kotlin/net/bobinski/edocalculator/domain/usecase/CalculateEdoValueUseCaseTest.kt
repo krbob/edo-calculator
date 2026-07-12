@@ -135,6 +135,25 @@ class CalculateEdoValueUseCaseTest {
     }
 
     @Test
+    fun `keeps pro-rata valuation semantics for a principal outside 100 PLN denominations`() = runTest {
+        val useCase = CalculateEdoValueUseCase(
+            inflationProvider = FakeInflationProvider(emptyMap()),
+            currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))
+        )
+
+        val result = useCase(
+            purchaseDate = LocalDate(2023, 1, 1),
+            firstPeriodRate = BigDecimal("7.25"),
+            margin = BigDecimal("1.25"),
+            principal = BigDecimal("123.45")
+        )
+
+        assertEquals(BigDecimal("123.45"), result.principal)
+        assertEquals(BigDecimal("8.95"), result.edoValue.totalAccruedInterest)
+        assertEquals(BigDecimal("132.40"), result.edoValue.totalValue)
+    }
+
+    @Test
     fun `throws when margin is negative`() {
         val inflationProvider = FakeInflationProvider(emptyMap())
         val currentTimeProvider = FakeCurrentTimeProvider(LocalDate(2024, 1, 1))

@@ -342,7 +342,10 @@ components:
       name: principal
       in: query
       required: false
-      description: Principal in PLN; defaults to 100 and cannot exceed 1000000000000.
+      description: |
+        Analytical aggregate principal in PLN; defaults to 100 and cannot exceed 1000000000000.
+        It is intentionally not restricted to multiples of the official 100 PLN single-bond nominal:
+        this valuation API preserves pro-rata legacy semantics and does not validate executable purchase quantities.
       schema:
         allOf:
           - $ref: "#/components/schemas/DecimalParameter"
@@ -527,6 +530,7 @@ components:
           description: Exact percentage margin used by the calculation; precision is not rounded for reporting.
         principal:
           $ref: "#/components/schemas/DecimalString"
+          description: Analytical aggregate principal used for the pro-rata valuation.
         edoValue:
           $ref: "#/components/schemas/EdoValue"
     EdoValue:
@@ -600,6 +604,7 @@ components:
           description: Exact percentage margin used by the calculation; precision is not rounded for reporting.
         principal:
           $ref: "#/components/schemas/DecimalString"
+          description: Analytical aggregate principal used for the pro-rata valuation.
         points:
           type: array
           maxItems: 4000
