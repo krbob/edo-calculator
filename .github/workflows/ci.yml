@@ -75,8 +75,6 @@ jobs:
 
       - name: Scan runtime dependencies
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        env:
-          TRIVY_OFFLINE_SCAN: 'true'
         with:
           scan-type: sbom
           scan-ref: build/reports/cyclonedx/edo-calculator.cdx.json
