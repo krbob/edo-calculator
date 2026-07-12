@@ -121,128 +121,132 @@ jobs:
           docker rm -f app || true
           docker run -d --name app -p "${APP_PORT}:${APP_PORT}" "$IMAGE"
 
-      - name: Wait until health and endpoints return 200
+      - name: Deterministic container smoke without GUS
         env:
           APP_PORT: ${{ env.APP_PORT }}
         run: |
           set -euo pipefail
           base="http://localhost:${APP_PORT}"
-          purchase_year="$(date -u -d '30 days ago' +%Y)"
-          purchase_month="$(date -u -d '30 days ago' +%-m)"
-          purchase_day="$(date -u -d '30 days ago' +%-d)"
-          today_year="$(date -u +%Y)"
-          today_month="$(date -u +%-m)"
-          today_day="$(date -u +%-d)"
-          # Use an older CPI window in smoke checks. The explicit inflation endpoints are strict
-          # about missing monthly CPI data and may return 503 for the latest not-yet-published month.
-          cpi_start_year="$(date -u -d '120 days ago' +%Y)"
-          cpi_start_month="$(date -u -d '120 days ago' +%-m)"
-          cpi_end_year="$(date -u -d '2 months ago' +%Y)"
-          cpi_end_month="$(date -u -d '2 months ago' +%-m)"
-          URLS=(
-            "/healthz"
-            "/edo/value?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
-            "/edo/value/at?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5&asOfYear=${today_year}&asOfMonth=${today_month}&asOfDay=${today_day}"
-            "/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
-            "/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&fromYear=${purchase_year}&fromMonth=${purchase_month}&fromDay=${purchase_day}&toYear=${today_year}&toMonth=${today_month}&toDay=${today_day}&firstPeriodRate=2.7&margin=1.5"
-            "/inflation/between?startYear=${cpi_start_year}&startMonth=${cpi_start_month}&endYear=${cpi_end_year}&endMonth=${cpi_end_month}"
-            "/inflation/monthly?startYear=${cpi_start_year}&startMonth=${cpi_start_month}&endYear=${cpi_end_year}&endMonth=${cpi_end_month}"
-          )
-          echo "⏳ Checking ${#URLS[@]} endpoint(s)..."
+          request_id="deterministic-container-smoke"
+          purchase_date="$(TZ=Europe/Warsaw date -d '30 days ago' +%F)"
+          today="$(TZ=Europe/Warsaw date +%F)"
+          purchase_year="${purchase_date%%-*}"
+          purchase_rest="${purchase_date#*-}"
+          purchase_month="${purchase_rest%%-*}"
+          purchase_day="${purchase_date##*-}"
+          today_year="${today%%-*}"
+          today_rest="${today#*-}"
+          today_month="${today_rest%%-*}"
+          today_day="${today##*-}"
 
-          wait_for_200() {
-            local url="$1"
-            echo "→ Waiting for 200 from: $url"
-            for _ in $(seq 1 60); do
-              if curl -fsS --max-time 1 "$url" > /dev/null; then
-                echo "✅ 200 from: $url"
-                return 0
-              fi
-              sleep 1
-            done
-            echo "❌ No 200 response within 60s from: $url"
-            return 1
-          }
-
-          failures=0
-          for raw in "${URLS[@]}"; do
-            url="${base}${raw}"
-
-            if ! wait_for_200 "$url"; then
-              failures=$((failures+1))
+          # Readiness resolves the local dependency graph only. A purchase from 30 days ago is
+          # deliberately inside period one, whose fixed rate never requires CPI data from GUS.
+          for _ in $(seq 1 60); do
+            if curl -fsS --max-time 1 "${base}/healthz" >/dev/null; then
+              break
             fi
+            sleep 1
           done
+          curl -fsS --max-time 3 "${base}/healthz" | grep -Fx 'ok'
+          curl -fsS --max-time 3 "${base}/readyz" | grep -Fx 'ready'
 
-          if [[ $failures -gt 0 ]]; then
-            echo "📜 Container logs (some checks failed):"
-            docker logs app || true
-            exit 1
-          fi
-          echo "🎉 All endpoints responded with 200"
+          common_query="purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
+          curl -fsS --max-time 5 -H "X-Request-ID: ${request_id}" \
+            "${base}/v1/edo/value?${common_query}" -o /tmp/edo-value.json
+          curl -fsS --max-time 5 -H "X-Request-ID: ${request_id}" \
+            "${base}/v1/edo/value/at?${common_query}&asOfYear=${today_year}&asOfMonth=${today_month}&asOfDay=${today_day}" \
+            -o /tmp/edo-value-at.json
+          curl -fsS --max-time 5 -H "X-Request-ID: ${request_id}" \
+            "${base}/v1/edo/history?${common_query}&fromYear=${purchase_year}&fromMonth=${purchase_month}&fromDay=${purchase_day}&toYear=${today_year}&toMonth=${today_month}&toDay=${today_day}" \
+            -o /tmp/edo-history.json
+          curl -fsS --max-time 5 -H "X-Request-ID: ${request_id}" \
+            "${base}/v1/edo/history?${common_query}" -o /tmp/edo-history-default.json
 
-      - name: Smoke test edo history payload
+          PURCHASE_DATE="$purchase_date" TODAY="$today" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          purchase_date = os.environ["PURCHASE_DATE"]
+          today = os.environ["TODAY"]
+          value = json.loads(Path("/tmp/edo-value.json").read_text())
+          value_at = json.loads(Path("/tmp/edo-value-at.json").read_text())
+          history = json.loads(Path("/tmp/edo-history.json").read_text())
+          history_default = json.loads(Path("/tmp/edo-history-default.json").read_text())
+
+          for payload in (value, value_at):
+              assert payload["purchaseDate"] == purchase_date, payload
+              assert payload["asOf"] == today, payload
+              assert payload["status"] == "ACTIVE", payload
+              assert payload["principal"] == "100.00", payload
+              assert len(payload["edoValue"]["periods"]) == 1, payload
+              assert payload["edoValue"]["periods"][0]["inflationPercent"] is None, payload
+
+          for payload in (history, history_default):
+              assert payload["purchaseDate"] == purchase_date, payload
+              assert payload["from"] == purchase_date, payload
+              assert payload["until"] == today, payload
+              assert payload["points"], payload
+              assert payload["points"][0]["date"] == purchase_date, payload
+              assert payload["points"][-1]["date"] == today, payload
+          PY
+
+          invalid_status="$(curl -sS --max-time 3 -D /tmp/edo-invalid.headers \
+            -o /tmp/edo-invalid.json -w '%{http_code}' -H "X-Request-ID: ${request_id}" \
+            "${base}/v1/edo/value?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=invalid&margin=1.5")"
+          test "$invalid_status" = "400"
+          tr -d '\r' < /tmp/edo-invalid.headers | grep -qi "^x-request-id: ${request_id}$"
+          REQUEST_ID="$request_id" python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          error = json.loads(Path("/tmp/edo-invalid.json").read_text())
+          assert set(error) == {"error", "errorCode", "retryable", "requestId"}, error
+          assert error["errorCode"] == "INVALID_REQUEST", error
+          assert error["retryable"] is False, error
+          assert error["requestId"] == os.environ["REQUEST_ID"], error
+          PY
+
+      - name: Live GUS canary (non-blocking)
+        continue-on-error: true
+        timeout-minutes: 3
         env:
           APP_PORT: ${{ env.APP_PORT }}
         run: |
           set -euo pipefail
-          base="http://localhost:${APP_PORT}"
-          purchase_year="$(date -u -d '30 days ago' +%Y)"
-          purchase_month="$(date -u -d '30 days ago' +%-m)"
-          purchase_day="$(date -u -d '30 days ago' +%-d)"
-          today_year="$(date -u +%Y)"
-          today_month="$(date -u +%-m)"
-          today_day="$(date -u +%-d)"
-
-          response="$(
-            curl -fsS \
-              "${base}/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&fromYear=${purchase_year}&fromMonth=${purchase_month}&fromDay=${purchase_day}&toYear=${today_year}&toMonth=${today_month}&toDay=${today_day}&firstPeriodRate=2.7&margin=1.5"
-          )"
-
-          echo "$response" | grep -q '"purchaseDate"'
-          echo "$response" | grep -q '"points"'
-          echo "$response" | grep -q '"totalValue"'
-
-      - name: Smoke test edo history payload without explicit range
-        env:
-          APP_PORT: ${{ env.APP_PORT }}
-        run: |
-          set -euo pipefail
-          base="http://localhost:${APP_PORT}"
-          purchase_year="$(date -u -d '30 days ago' +%Y)"
-          purchase_month="$(date -u -d '30 days ago' +%-m)"
-          purchase_day="$(date -u -d '30 days ago' +%-d)"
-
-          response="$(
-            curl -fsS \
-              "${base}/edo/history?purchaseYear=${purchase_year}&purchaseMonth=${purchase_month}&purchaseDay=${purchase_day}&firstPeriodRate=2.7&margin=1.5"
-          )"
-
-          echo "$response" | grep -q '"purchaseDate"'
-          echo "$response" | grep -q '"from"'
-          echo "$response" | grep -q '"until"'
-          echo "$response" | grep -q '"points"'
-
-      - name: Smoke test inflation monthly payload
-        env:
-          APP_PORT: ${{ env.APP_PORT }}
-        run: |
-          set -euo pipefail
+          trap 'docker logs app || true' ERR
           base="http://localhost:${APP_PORT}"
           start_year="$(date -u -d '120 days ago' +%Y)"
           start_month="$(date -u -d '120 days ago' +%-m)"
           end_year="$(date -u -d '2 months ago' +%Y)"
           end_month="$(date -u -d '2 months ago' +%-m)"
 
-          response="$(
-            curl -fsS \
-              "${base}/inflation/monthly?startYear=${start_year}&startMonth=${start_month}&endYear=${end_year}&endMonth=${end_month}"
-          )"
+          # These calls intentionally exercise the real provider. Their result is visible in CI,
+          # but GUS availability must not gate deterministic verification or image publishing.
+          curl -fsS --max-time 10 --retry 2 --retry-delay 2 --retry-all-errors \
+            "${base}/v1/inflation/since?year=${start_year}&month=${start_month}" \
+            -o /tmp/inflation-since.json
+          curl -fsS --max-time 10 --retry 2 --retry-delay 2 --retry-all-errors \
+            "${base}/v1/inflation/between?startYear=${start_year}&startMonth=${start_month}&endYear=${end_year}&endMonth=${end_month}" \
+            -o /tmp/inflation-between.json
+          curl -fsS --max-time 10 --retry 2 --retry-delay 2 --retry-all-errors \
+            "${base}/v1/inflation/monthly?startYear=${start_year}&startMonth=${start_month}&endYear=${end_year}&endMonth=${end_month}" \
+            -o /tmp/inflation-monthly.json
 
-          echo "$response" | grep -q '"from"'
-          echo "$response" | grep -q '"until"'
-          echo "$response" | grep -q '"points"'
-          echo "$response" | grep -q '"month"'
-          echo "$response" | grep -q '"multiplier"'
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          since = json.loads(Path("/tmp/inflation-since.json").read_text())
+          between = json.loads(Path("/tmp/inflation-between.json").read_text())
+          monthly = json.loads(Path("/tmp/inflation-monthly.json").read_text())
+
+          assert since["from"] and since["until"] and since["multiplier"], since
+          assert between["from"] and between["until"] and between["multiplier"], between
+          assert monthly["from"] and monthly["until"] and monthly["points"], monthly
+          assert all(point["month"] and point["multiplier"] for point in monthly["points"]), monthly
+          PY
 
       - name: Clean up
         if: always()
