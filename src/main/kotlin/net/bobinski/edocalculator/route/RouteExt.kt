@@ -85,6 +85,8 @@ data class ApiErrorResponse(
 @Serializable
 enum class ApiErrorCode {
     INVALID_REQUEST,
+    ROUTE_NOT_FOUND,
+    METHOD_NOT_ALLOWED,
     CPI_PROVIDER_UNAVAILABLE,
     CPI_DATA_UNAVAILABLE,
     INTERNAL_ERROR

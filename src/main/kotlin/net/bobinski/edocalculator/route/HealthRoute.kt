@@ -7,6 +7,7 @@ import io.ktor.server.application.log
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import kotlinx.coroutines.CancellationException
 
 fun Route.healthRoute() {
     get("/healthz") {
@@ -16,18 +17,18 @@ fun Route.healthRoute() {
 
 fun Route.readinessRoute(checkDependencies: () -> Unit) {
     get("/readyz") {
-        runCatching(checkDependencies).fold(
-            onSuccess = {
-                call.respondText("ready", ContentType.Text.Plain)
-            },
-            onFailure = { cause ->
-                call.application.log.error("Readiness check failed: {}", cause.message)
-                call.respondText(
-                    text = "not ready",
-                    contentType = ContentType.Text.Plain,
-                    status = HttpStatusCode.ServiceUnavailable
-                )
-            }
-        )
+        try {
+            checkDependencies()
+            call.respondText("ready", ContentType.Text.Plain)
+        } catch (cause: CancellationException) {
+            throw cause
+        } catch (cause: Exception) {
+            call.application.log.error("Readiness check failed", cause)
+            call.respondText(
+                text = "not ready",
+                contentType = ContentType.Text.Plain,
+                status = HttpStatusCode.ServiceUnavailable
+            )
+        }
     }
 }

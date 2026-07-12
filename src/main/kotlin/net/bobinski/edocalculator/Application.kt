@@ -11,5 +11,6 @@ fun Application.module() {
     configureDependencies()
     configureSerialization()
     configureMonitoring()
+    configureErrorHandling()
     configureRouting()
 }

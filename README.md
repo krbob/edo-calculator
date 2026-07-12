@@ -32,6 +32,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 - Odpowiedzi wyceny zawierają datę zapadalności `maturityDate` oraz status `ACTIVE` lub `MATURED`. Od dnia zapadalności wartość nie nalicza już odsetek.
 - Każda odpowiedź zawiera `X-Request-ID`. Bezpieczny identyfikator klienta jest zachowywany, a brakujący lub niepoprawny zastępowany identyfikatorem serwera i dodawany do kontekstu logów jako `requestId`.
 - Błędy zachowują kompatybilne pole `error` i dodatkowo zwracają stabilne `errorCode`, flagę `retryable` oraz `requestId` zgodny z nagłówkiem odpowiedzi.
+- Ten sam kontrakt błędu obejmuje walidację, niedostępność CPI, nieznane trasy, niedozwolone metody i nieobsłużone wyjątki aplikacji.
 
 ## Endpointy
 

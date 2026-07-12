@@ -1,5 +1,8 @@
 package net.bobinski.edocalculator
 
+import ch.qos.logback.classic.Logger
+import ch.qos.logback.classic.spi.ILoggingEvent
+import ch.qos.logback.core.read.ListAppender
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
@@ -13,8 +16,10 @@ import net.bobinski.edocalculator.route.ApiErrorResponse
 import net.bobinski.edocalculator.route.healthRoute
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
 
 class MonitoringTest {
 
@@ -81,6 +86,32 @@ class MonitoringTest {
         val logbackConfig = checkNotNull(javaClass.getResource("/logback.xml")).readText()
 
         assertTrue(logbackConfig.contains("[requestId=%X{requestId}]"))
+    }
+
+    @Test
+    fun `attaches request id to the actual access log event`() {
+        val logger = LoggerFactory.getLogger("io.ktor.test") as Logger
+        val appender = ListAppender<ILoggingEvent>().apply { start() }
+        logger.addAppender(appender)
+
+        try {
+            testApplication {
+                application { module() }
+
+                client.get("/edo/value") {
+                    header(HttpHeaders.XRequestId, "mdc-event-123")
+                }
+            }
+
+            val requestEvent = appender.list.firstOrNull { event ->
+                event.mdcPropertyMap["requestId"] == "mdc-event-123" &&
+                    event.formattedMessage.contains("/edo/value")
+            }
+            assertNotNull(requestEvent)
+        } finally {
+            logger.detachAppender(appender)
+            appender.stop()
+        }
     }
 
     private companion object {
