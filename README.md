@@ -31,6 +31,7 @@ Zapisz powyższy fragment jako `docker-compose.yml` i uruchom `docker compose up
 - Pojęcia „dzisiaj” i „bieżący miesiąc” używają polskiej strefy biznesowej `Europe/Warsaw`, niezależnie od strefy hosta lub kontenera.
 - Odpowiedzi wyceny zawierają datę zapadalności `maturityDate` oraz status `ACTIVE` lub `MATURED`. Od dnia zapadalności wartość nie nalicza już odsetek.
 - Każda odpowiedź zawiera `X-Request-ID`. Bezpieczny identyfikator klienta jest zachowywany, a brakujący lub niepoprawny zastępowany identyfikatorem serwera i dodawany do kontekstu logów jako `requestId`.
+- Błędy zachowują kompatybilne pole `error` i dodatkowo zwracają stabilne `errorCode`, flagę `retryable` oraz `requestId` zgodny z nagłówkiem odpowiedzi.
 
 ## Endpointy
 

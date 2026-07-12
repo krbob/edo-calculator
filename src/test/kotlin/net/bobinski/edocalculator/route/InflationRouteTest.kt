@@ -44,10 +44,10 @@ class InflationRouteTest {
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'month' and 'year' must be integers.",
-                body["error"]
+                body.error
             )
             coVerify { useCase wasNot Called }
         }
@@ -68,10 +68,10 @@ class InflationRouteTest {
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Invalid month or year value.",
-                body["error"]
+                body.error
             )
             coVerify { useCase wasNot Called }
         }
@@ -127,8 +127,10 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Start date in the future", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Start date in the future", body.error)
+            assertEquals(ApiErrorCode.INVALID_REQUEST, body.errorCode)
+            assertEquals(false, body.retryable)
         }
     }
 
@@ -149,8 +151,10 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("No CPI data", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("No CPI data", body.error)
+            assertEquals(ApiErrorCode.CPI_DATA_UNAVAILABLE, body.errorCode)
+            assertEquals(true, body.retryable)
         }
     }
 
@@ -171,8 +175,10 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Unable to reach CPI provider.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Unable to reach CPI provider.", body.error)
+            assertEquals(ApiErrorCode.CPI_PROVIDER_UNAVAILABLE, body.errorCode)
+            assertEquals(true, body.retryable)
         }
     }
 
@@ -193,8 +199,10 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Unexpected error occurred.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Unexpected error occurred.", body.error)
+            assertEquals(ApiErrorCode.INTERNAL_ERROR, body.errorCode)
+            assertEquals(false, body.retryable)
         }
     }
 
@@ -210,10 +218,10 @@ class InflationRouteTest {
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
-                body["error"]
+                body.error
             )
             coVerify { useCase wasNot Called }
         }
@@ -236,8 +244,8 @@ class InflationRouteTest {
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Invalid start month or year value.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Invalid start month or year value.", body.error)
             coVerify { useCase wasNot Called }
         }
     }
@@ -297,8 +305,8 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("End date must be after start date.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("End date must be after start date.", body.error)
         }
     }
 
@@ -323,8 +331,8 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("No CPI data", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("No CPI data", body.error)
         }
     }
 
@@ -349,8 +357,8 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Unexpected error occurred.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Unexpected error occurred.", body.error)
         }
     }
 
@@ -410,10 +418,10 @@ class InflationRouteTest {
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'startMonth', 'startYear', 'endMonth', and 'endYear' must be integers.",
-                body["error"]
+                body.error
             )
             coVerify { monthlyUseCase wasNot Called }
         }
@@ -438,8 +446,8 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("No CPI data for 2026-02", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("No CPI data for 2026-02", body.error)
         }
     }
 
@@ -462,8 +470,8 @@ class InflationRouteTest {
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("End month must not be in the future.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("End month must not be in the future.", body.error)
         }
     }
 

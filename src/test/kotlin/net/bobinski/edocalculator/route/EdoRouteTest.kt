@@ -44,10 +44,10 @@ class EdoRouteTest {
             val json = GlobalContext.get().get<Json>()
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'purchaseYear' and 'purchaseMonth' and 'purchaseDay' must be integers.",
-                body["error"]
+                body.error
             )
             coVerify { useCase wasNot Called }
         }
@@ -70,8 +70,8 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Invalid day, month or year value.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Invalid day, month or year value.", body.error)
             coVerify { useCase wasNot Called }
         }
     }
@@ -91,10 +91,10 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'firstPeriodRate' and 'margin' must be decimals.",
-                body["error"]
+                body.error
             )
             coVerify { useCase wasNot Called }
         }
@@ -118,8 +118,8 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Query parameter 'principal' must be a decimal.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Query parameter 'principal' must be a decimal.", body.error)
             coVerify { useCase wasNot Called }
         }
     }
@@ -142,8 +142,8 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Query parameter 'principal' must be a decimal.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Query parameter 'principal' must be a decimal.", body.error)
             coVerify { useCase wasNot Called }
         }
     }
@@ -165,10 +165,10 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'asOfYear' and 'asOfMonth' and 'asOfDay' must be integers.",
-                body["error"]
+                body.error
             )
             coVerify { useCase wasNot Called }
         }
@@ -194,8 +194,8 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Invalid as-of day, month or year value.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Invalid as-of day, month or year value.", body.error)
             coVerify { useCase wasNot Called }
         }
     }
@@ -375,8 +375,8 @@ class EdoRouteTest {
 
             assertEquals(HttpStatusCode.BadRequest, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Principal too small", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Principal too small", body.error)
         }
     }
 
@@ -398,8 +398,8 @@ class EdoRouteTest {
 
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Missing CPI", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Missing CPI", body.error)
         }
     }
 
@@ -421,8 +421,8 @@ class EdoRouteTest {
 
             assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Unable to reach CPI provider.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Unable to reach CPI provider.", body.error)
         }
     }
 
@@ -444,8 +444,8 @@ class EdoRouteTest {
 
             assertEquals(HttpStatusCode.InternalServerError, response.status)
             val json = GlobalContext.get().get<Json>()
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
-            assertEquals("Unexpected error occurred.", body["error"])
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+            assertEquals("Unexpected error occurred.", body.error)
         }
     }
 
@@ -695,10 +695,10 @@ class EdoRouteTest {
 
             val json = GlobalContext.get().get<Json>()
             assertEquals(HttpStatusCode.BadRequest, response.status)
-            val body = json.decodeFromString<Map<String, String>>(response.bodyAsText())
+            val body = json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
             assertEquals(
                 "Query parameters 'fromYear' and 'fromMonth' and 'fromDay' must be integers when provided.",
-                body["error"]
+                body.error
             )
             coVerify { historyUseCase wasNot Called }
         }

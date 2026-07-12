@@ -2,9 +2,14 @@ package net.bobinski.edocalculator
 
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.Json
+import net.bobinski.edocalculator.route.ApiErrorCode
+import net.bobinski.edocalculator.route.ApiErrorResponse
 import net.bobinski.edocalculator.route.healthRoute
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
@@ -53,6 +58,22 @@ class MonitoringTest {
         val requestId = client.get("/healthz").headers[HttpHeaders.XRequestId]
 
         assertTrue(requestId?.matches(SAFE_REQUEST_ID_PATTERN) == true)
+    }
+
+    @Test
+    fun `uses the response request id in structured errors`() = testApplication {
+        application { module() }
+
+        val response = client.get("/edo/value") {
+            header(HttpHeaders.XRequestId, "contract-test-123")
+        }
+        val error = Json.decodeFromString<ApiErrorResponse>(response.bodyAsText())
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        assertEquals("contract-test-123", response.headers[HttpHeaders.XRequestId])
+        assertEquals("contract-test-123", error.requestId)
+        assertEquals(ApiErrorCode.INVALID_REQUEST, error.errorCode)
+        assertEquals(false, error.retryable)
     }
 
     private companion object {
