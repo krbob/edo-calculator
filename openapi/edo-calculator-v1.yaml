@@ -28,6 +28,10 @@ paths:
       tags: [EDO]
       operationId: getCurrentEdoValue
       summary: Calculate the current value of an EDO bond
+      description: |
+        Uses the current date in the Europe/Warsaw business time zone. The purchase
+        date must not be in the future. Calculations that extend beyond period one
+        require annual CPI data from GUS.
       parameters:
         - $ref: "#/components/parameters/PurchaseYear"
         - $ref: "#/components/parameters/PurchaseMonth"
@@ -50,6 +54,9 @@ paths:
       tags: [EDO]
       operationId: getEdoValueAtDate
       summary: Calculate the value of an EDO bond on a specified date
+      description: |
+        The as-of date must be on or after the purchase date and must not be in the
+        future in the Europe/Warsaw business time zone.
       parameters:
         - $ref: "#/components/parameters/PurchaseYear"
         - $ref: "#/components/parameters/PurchaseMonth"
@@ -78,7 +85,9 @@ paths:
       description: |
         `from*` and `to*` are optional date groups. If any field in a group is
         supplied, all three fields in that group must be supplied. At most 4000
-        daily points can be requested.
+        daily points can be requested. A start before the purchase date is clamped
+        to the purchase date. The end date must not be in the future. Both response
+        boundaries are inclusive.
       parameters:
         - $ref: "#/components/parameters/PurchaseYear"
         - $ref: "#/components/parameters/PurchaseMonth"
@@ -107,6 +116,11 @@ paths:
       tags: [Inflation]
       operationId: getCumulativeInflationSince
       summary: Calculate cumulative CPI from a month to the latest available month
+      description: |
+        The start month is included. The response end is exclusive and is moved
+        backwards from the current Europe/Warsaw month until a complete GUS-backed
+        range can be resolved. The start year must be 2010 or later and the resolved
+        range cannot exceed 360 months.
       parameters:
         - $ref: "#/components/parameters/Year"
         - $ref: "#/components/parameters/Month"
@@ -125,7 +139,10 @@ paths:
       tags: [Inflation]
       operationId: getCumulativeInflationBetween
       summary: Calculate cumulative CPI for a half-open month range
-      description: The start month is included and the end month is excluded.
+      description: |
+        The start month is included and the end month is excluded. The start year
+        must be 2010 or later, the end must be after the start and cannot be later
+        than the current Europe/Warsaw month, and the range cannot exceed 360 months.
       parameters:
         - $ref: "#/components/parameters/StartYear"
         - $ref: "#/components/parameters/StartMonth"
@@ -146,7 +163,10 @@ paths:
       tags: [Inflation]
       operationId: getMonthlyInflation
       summary: Return monthly CPI multipliers for a half-open month range
-      description: The start month is included and the end month is excluded.
+      description: |
+        The start month is included and the end month is excluded. The start year
+        must be 2010 or later, the end must be after the start and cannot be later
+        than the current Europe/Warsaw month, and the range cannot exceed 360 months.
       parameters:
         - $ref: "#/components/parameters/StartYear"
         - $ref: "#/components/parameters/StartMonth"
@@ -236,6 +256,7 @@ components:
       schema:
         type: integer
         minimum: 2000
+        example: 2020
     PurchaseMonth:
       name: purchaseMonth
       in: query
@@ -244,6 +265,7 @@ components:
         type: integer
         minimum: 1
         maximum: 12
+        example: 1
     PurchaseDay:
       name: purchaseDay
       in: query
@@ -252,12 +274,14 @@ components:
         type: integer
         minimum: 1
         maximum: 31
+        example: 1
     AsOfYear:
       name: asOfYear
       in: query
       required: true
       schema:
         type: integer
+        example: 2020
     AsOfMonth:
       name: asOfMonth
       in: query
@@ -266,6 +290,7 @@ components:
         type: integer
         minimum: 1
         maximum: 12
+        example: 1
     AsOfDay:
       name: asOfDay
       in: query
@@ -274,6 +299,7 @@ components:
         type: integer
         minimum: 1
         maximum: 31
+        example: 2
     FromYear:
       name: fromYear
       in: query
@@ -328,16 +354,16 @@ components:
       name: firstPeriodRate
       in: query
       required: true
-      description: First-period percentage rate, with up to 18 digits and 6 decimal places.
+      description: First-period percentage rate from 0 to 1000, inclusive.
       schema:
-        $ref: "#/components/schemas/DecimalParameter"
+        $ref: "#/components/schemas/RateParameter"
     Margin:
       name: margin
       in: query
       required: true
-      description: Percentage margin, with up to 18 digits and 6 decimal places.
+      description: Percentage margin from 0 to 1000, inclusive.
       schema:
-        $ref: "#/components/schemas/DecimalParameter"
+        $ref: "#/components/schemas/RateParameter"
     Principal:
       name: principal
       in: query
@@ -348,7 +374,7 @@ components:
         this valuation API preserves pro-rata legacy semantics and does not validate executable purchase quantities.
       schema:
         allOf:
-          - $ref: "#/components/schemas/DecimalParameter"
+          - $ref: "#/components/schemas/PrincipalParameter"
         default: "100"
     Year:
       name: year
@@ -408,6 +434,30 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/EdoResponse"
+          examples:
+            firstPeriod:
+              summary: Deterministic first-period valuation without a GUS lookup
+              value:
+                purchaseDate: "2020-01-01"
+                asOf: "2020-01-02"
+                maturityDate: "2030-01-01"
+                status: ACTIVE
+                firstPeriodRate: "5.00"
+                margin: "2.00"
+                principal: "100.00"
+                edoValue:
+                  totalValue: "100.01"
+                  totalAccruedInterest: "0.01"
+                  periods:
+                    - index: 1
+                      startDate: "2020-01-01"
+                      endDate: "2021-01-01"
+                      daysInPeriod: 366
+                      daysElapsed: 1
+                      ratePercent: "5.00"
+                      inflationPercent: null
+                      interestAccrued: "0.01"
+                      value: "100.01"
     EdoHistory:
       description: EDO daily history calculated successfully.
       headers:
@@ -417,6 +467,26 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/EdoHistoryResponse"
+          examples:
+            firstPeriod:
+              summary: Deterministic first-period history without a GUS lookup
+              value:
+                purchaseDate: "2020-01-01"
+                from: "2020-01-01"
+                until: "2020-01-03"
+                firstPeriodRate: "5.00"
+                margin: "2.00"
+                principal: "100.00"
+                points:
+                  - date: "2020-01-01"
+                    totalValue: "100.00"
+                    totalAccruedInterest: "0.00"
+                  - date: "2020-01-02"
+                    totalValue: "100.01"
+                    totalAccruedInterest: "0.01"
+                  - date: "2020-01-03"
+                    totalValue: "100.03"
+                    totalAccruedInterest: "0.03"
     Inflation:
       description: Cumulative inflation calculated successfully.
       headers:
@@ -483,10 +553,41 @@ components:
   schemas:
     DecimalParameter:
       type: string
-      description: A base-10 decimal encoded as a query string without loss of precision.
+      description: |
+        Lexical form of a base-10 decimal encoded as a query string without loss
+        of precision. Domain-specific bounds are declared by RateParameter and
+        PrincipalParameter.
       pattern: "^[+-]?(?:(?:[0-9]+(?:\\.[0-9]*)?)|(?:\\.[0-9]+))(?:[eE][+-]?[0-9]+)?$"
+      minLength: 1
       maxLength: 64
       examples: ["2.70"]
+    RateParameter:
+      allOf:
+        - $ref: "#/components/schemas/DecimalParameter"
+      description: |
+        Non-negative percentage with at most 18 significant digits and at most
+        6 fractional digits. Runtime accepts values from 0 through 1000 inclusive.
+      examples: ["5.00"]
+      x-runtime-constraints:
+        minimum: "0"
+        maximum: "1000"
+        maximumPrecision: 18
+        maximumScale: 6
+        minimumScale: -12
+    PrincipalParameter:
+      allOf:
+        - $ref: "#/components/schemas/DecimalParameter"
+      description: |
+        Non-negative analytical principal in PLN with at most 18 significant digits
+        and at most 6 fractional digits. Runtime accepts values through
+        1000000000000 inclusive.
+      examples: ["100.00"]
+      x-runtime-constraints:
+        minimum: "0"
+        maximum: "1000000000000"
+        maximumPrecision: 18
+        maximumScale: 6
+        minimumScale: -12
     DecimalString:
       type: string
       description: A base-10 decimal serialized as a JSON string without loss of precision.

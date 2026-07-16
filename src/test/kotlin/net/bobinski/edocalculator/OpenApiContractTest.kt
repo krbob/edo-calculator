@@ -13,10 +13,16 @@ import io.swagger.v3.parser.OpenAPIV3Parser
 import io.swagger.v3.parser.core.models.ParseOptions
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import net.bobinski.edocalculator.domain.edo.EdoPeriodBreakdown
 import net.bobinski.edocalculator.domain.edo.EdoStatus
 import net.bobinski.edocalculator.domain.edo.EdoValue
+import net.bobinski.edocalculator.domain.validation.CalculationLimits
 import net.bobinski.edocalculator.route.ApiErrorCode
 import net.bobinski.edocalculator.route.ApiErrorResponse
 import net.bobinski.edocalculator.route.EdoHistoryPointResponse
@@ -120,6 +126,70 @@ class OpenApiContractTest {
     }
 
     @Test
+    fun `OpenAPI decimal constraints match domain limits`() {
+        val openApi = loadOpenApi()
+        val parameters = openApi.components.parameters
+
+        assertEquals("#/components/schemas/RateParameter", parameters["FirstPeriodRate"]?.schema?.`$ref`)
+        assertEquals("#/components/schemas/RateParameter", parameters["Margin"]?.schema?.`$ref`)
+        assertEquals(
+            "#/components/schemas/PrincipalParameter",
+            parameters["Principal"]?.schema?.allOf?.singleOrNull()?.`$ref`
+        )
+
+        openApi.assertRuntimeDecimalConstraints(
+            schemaName = "RateParameter",
+            maximum = CalculationLimits.MAX_RATE_PERCENT.toPlainString()
+        )
+        openApi.assertRuntimeDecimalConstraints(
+            schemaName = "PrincipalParameter",
+            maximum = CalculationLimits.MAX_PRINCIPAL.toPlainString()
+        )
+    }
+
+    @Test
+    fun `static OpenAPI examples match deterministic first-period responses`() = testApplication {
+        application { module() }
+        val openApi = loadOpenApi()
+        val examples = listOf(
+            StaticExample(
+                responseName = "EdoValue",
+                exampleName = "firstPeriod",
+                requestPath = "/v1/edo/value/at?purchaseYear=2020&purchaseMonth=1&purchaseDay=1" +
+                    "&asOfYear=2020&asOfMonth=1&asOfDay=2" +
+                    "&firstPeriodRate=5.00&margin=2.00&principal=100.00"
+            ),
+            StaticExample(
+                responseName = "EdoHistory",
+                exampleName = "firstPeriod",
+                requestPath = "/v1/edo/history?purchaseYear=2020&purchaseMonth=1&purchaseDay=1" +
+                    "&fromYear=2020&fromMonth=1&fromDay=1" +
+                    "&toYear=2020&toMonth=1&toDay=3" +
+                    "&firstPeriodRate=5.00&margin=2.00&principal=100.00"
+            )
+        )
+
+        examples.forEach { example ->
+            val documented = requireNotNull(
+                openApi.components.responses[example.responseName]
+                    ?.content
+                    ?.get("application/json")
+                    ?.examples
+                    ?.get(example.exampleName)
+                    ?.value
+            ) { "Missing ${example.responseName}/${example.exampleName} OpenAPI example" }
+            val response = client.get(example.requestPath)
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(
+                documented.toJsonElement().withoutObjectNulls(),
+                Json.parseToJsonElement(response.bodyAsText()).withoutObjectNulls(),
+                "Static OpenAPI example differs for ${example.requestPath}"
+            )
+        }
+    }
+
+    @Test
     fun `every documented path is registered and returns a request id`() {
         val openApi = loadOpenApi()
 
@@ -214,10 +284,54 @@ class OpenApiContractTest {
     private fun OpenAPI.path(path: String) =
         requireNotNull(paths[path]) { "OpenAPI path is missing: $path" }
 
+    private fun OpenAPI.assertRuntimeDecimalConstraints(schemaName: String, maximum: String) {
+        val schema = requireNotNull(components.schemas[schemaName])
+        val constraints = requireNotNull(schema.extensions?.get("x-runtime-constraints") as? Map<*, *>) {
+            "$schemaName must declare x-runtime-constraints"
+        }
+
+        assertEquals("0", constraints["minimum"]?.toString())
+        assertEquals(maximum, constraints["maximum"]?.toString())
+        assertEquals(CalculationLimits.MAX_DECIMAL_PRECISION.toString(), constraints["maximumPrecision"]?.toString())
+        assertEquals(CalculationLimits.MAX_DECIMAL_SCALE.toString(), constraints["maximumScale"]?.toString())
+        assertEquals(CalculationLimits.MIN_DECIMAL_SCALE.toString(), constraints["minimumScale"]?.toString())
+    }
+
     private fun KSerializer<*>.fieldNames(): Set<String> =
         (0 until descriptor.elementsCount)
             .map(descriptor::getElementName)
             .toSet()
+
+    private fun Any?.toJsonElement(): JsonElement = when (this) {
+        null -> JsonNull
+        is Map<*, *> -> JsonObject(
+            entries.associate { (key, value) ->
+                requireNotNull(key).toString() to value.toJsonElement()
+            }
+        )
+        is Iterable<*> -> JsonArray(map { value -> value.toJsonElement() })
+        is Boolean -> JsonPrimitive(this)
+        is Number -> JsonPrimitive(this)
+        else -> JsonPrimitive(toString())
+    }
+
+    // Swagger Parser omits explicit YAML nulls from example maps. The response schema test
+    // separately guarantees that nullable fields such as inflationPercent remain required.
+    private fun JsonElement.withoutObjectNulls(): JsonElement = when (this) {
+        is JsonObject -> JsonObject(
+            entries
+                .filter { (_, value) -> value != JsonNull }
+                .associate { (key, value) -> key to value.withoutObjectNulls() }
+        )
+        is JsonArray -> JsonArray(map { value -> value.withoutObjectNulls() })
+        else -> this
+    }
+
+    private data class StaticExample(
+        val responseName: String,
+        val exampleName: String,
+        val requestPath: String
+    )
 
     private companion object {
         val OPEN_API_PATH: Path = Path.of("openapi", "edo-calculator-v1.yaml")
