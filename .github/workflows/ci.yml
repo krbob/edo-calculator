@@ -26,6 +26,9 @@ jobs:
       - name: Validate documentation
         run: python3 scripts/validate-docs.py
 
+      - name: Validate Compose quick start
+        run: docker compose config --quiet
+
       - name: Set up JDK
         uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5
         with:

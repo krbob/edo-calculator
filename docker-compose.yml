@@ -1,0 +1,10 @@
+name: edo-calculator-quickstart
+
+services:
+  edo-calculator:
+    image: ${EDO_CALCULATOR_IMAGE:-edo-calculator:local}
+    pull_policy: never
+    environment:
+      TZ: Europe/Warsaw
+    ports:
+      - "127.0.0.1:${EDO_CALCULATOR_PORT:-8080}:8080"

@@ -8,19 +8,23 @@ Kanoniczne API korzysta z prefiksu `/v1`. Pełnym źródłem kontraktu endpoint�
 
 ## Szybki start
 
-Obrazy wieloarchitekturne są publikowane do GHCR. Wdrożenie powinno wskazywać niezmienny digest manifestu z zakończonego sukcesem joba `Publish image`, a nie ruchomy tag `latest`.
+Wymagane są JDK 21, Docker i plugin Docker Compose. Jib buduje obraz bez osobnego `Dockerfile`, a dołączony
+[plik Compose](docker-compose.yml) wystawia usługę wyłącznie na lokalnym interfejsie:
 
 ```bash
-export EDO_CALCULATOR_IMAGE='ghcr.io/krbob/edo-calculator@sha256:<digest-manifestu>'
-docker run --rm -p 8080:8080 "$EDO_CALCULATOR_IMAGE"
+./gradlew jibDockerBuild --image=edo-calculator:local
+docker compose up --detach
+
+curl --fail http://127.0.0.1:8080/healthz
+curl --fail http://127.0.0.1:8080/readyz
 ```
 
-Po uruchomieniu:
+Zatrzymaj usługę poleceniem `docker compose down`. Obraz distroless nie zawiera powłoki ani `curl`, dlatego probe'y
+wykonuje host, a Compose nie deklaruje pozornego healthchecka kontenera.
 
-```bash
-curl --fail http://localhost:8080/healthz
-curl --fail http://localhost:8080/readyz
-```
+Obrazy wieloarchitekturne są również publikowane do GHCR. Trwałe wdrożenie powinno wskazywać niezmienny digest
+manifestu z zakończonego sukcesem joba `Publish image`; przykład znajduje się w
+[dokumencie operacyjnym](docs/operations.md#niezmienny-obraz).
 
 Deterministyczny przykład wyceny z pierwszego okresu odsetkowego nie wymaga danych CPI:
 
@@ -39,7 +43,7 @@ curl --get 'http://localhost:8080/v1/edo/value/at' \
 
 Zweryfikowana odpowiedź tego przykładu jest częścią kontraktu OpenAPI i testów. Zapytania obejmujące kolejne okresy zależą od dostępności danych GUS i mogą zwrócić retryowalny błąd `503`.
 
-## Uruchomienie lokalne
+## Uruchomienie lokalne bez Dockera
 
 Wymagany jest JDK 21. Projekt korzysta z wrappera Gradle, więc osobna instalacja Gradle nie jest potrzebna.
 
