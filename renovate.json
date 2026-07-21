@@ -9,12 +9,13 @@
   "branchPrefix": "renovate/",
   "prCreation": "immediate",
   "schedule": [
-    "* 0-8 * * 1"
+    "at any time"
   ],
   "updateNotScheduled": true,
-  "prConcurrentLimit": 10,
-  "branchConcurrentLimit": 10,
-  "prHourlyLimit": 2,
+  "commitHourlyLimit": 0,
+  "prConcurrentLimit": 0,
+  "branchConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   "rebaseWhen": "behind-base-branch",
   "separateMajorMinor": true,
   "separateMultipleMajor": false,
@@ -33,7 +34,7 @@
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
-      "* 0-8 * * 1"
+      "at any time"
     ],
     "automerge": true
   },
