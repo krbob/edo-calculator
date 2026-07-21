@@ -6,7 +6,7 @@ kotlinx-coroutines-version = "1.11.0"
 junit-version = "6.1.1"
 koin-version = "4.2.2"
 detekt-version = "2.0.0-alpha.5"
-swagger-parser-version = "2.1.44"
+swagger-parser-version = "2.1.45"
 micrometer-version = "1.16.5"
 cyclonedx-version = "3.2.4"
 
