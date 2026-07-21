@@ -122,9 +122,15 @@ Skany Trivy blokują naprawialne podatności `HIGH` i `CRITICAL`. SBOM jest arte
 
 ## Renovate
 
-Renovate działa w poniedziałkowym oknie czasu `Europe/Warsaw`. Automerge obejmuje wyłącznie dojrzałe, niekrytyczne patche Gradle po zielonym CI. Kotlin, Ktor, Koin, Logback, Micrometer, Detekt, CycloneDX, Gradle, GitHub Actions, skaner, obraz bazowy i wszystkie wersje major wymagają ręcznego review.
+Renovate tworzy dojrzałe PR-y zależności w poniedziałkowym oknie czasu
+`Europe/Warsaw`, a istniejące branche może aktualizować i ponownie testować przez
+cały miesiąc. Wszystkie rodzaje aktualizacji — również major, Gradle, GitHub Actions,
+skaner i obraz bazowy — kwalifikują się do squash automerge po zielonym wymaganym
+CI. Renovate wykonuje merge wyłącznie przez pierwsze trzy dni miesiąca; natywny
+automerge GitHuba pozostaje wyłączony, aby nie ominąć tego okna.
 
-Po aktualizacji zależności należy zawsze sprawdzić lockfile, pełne testy, SBOM i oba skany podatności. Aktualizacja digestu obrazu bazowego wymaga również lokalnego lub CI smoke kontenera.
+CI każdego PR-a zależności sprawdza lockfile, pełne testy, SBOM i oba skany
+podatności. Aktualizacja digestu obrazu bazowego przechodzi również smoke kontenera.
 
 ## Utrzymanie dokumentacji
 

@@ -6,23 +6,43 @@
   ],
   "timezone": "Europe/Warsaw",
   "dependencyDashboard": true,
+  "branchPrefix": "renovate/",
+  "prCreation": "immediate",
   "schedule": [
-    "before 6am on monday"
+    "* 0-8 * * 1"
   ],
-  "updateNotScheduled": false,
-  "prConcurrentLimit": 5,
-  "branchConcurrentLimit": 5,
+  "updateNotScheduled": true,
+  "prConcurrentLimit": 10,
+  "branchConcurrentLimit": 10,
   "prHourlyLimit": 2,
   "rebaseWhen": "behind-base-branch",
+  "separateMajorMinor": true,
+  "separateMultipleMajor": false,
+  "minimumReleaseAge": "7 days",
+  "minimumReleaseAgeBehaviour": "timestamp-optional",
   "rangeStrategy": "pin",
   "pinDigests": true,
-  "automerge": false,
+  "automerge": true,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": false,
+  "ignoreTests": false,
+  "automergeSchedule": [
+    "* * 1-3 * *"
+  ],
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
-      "before 6am on monday"
+      "* 0-8 * * 1"
     ],
-    "automerge": false
+    "automerge": true
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "automerge": true,
+    "schedule": [
+      "at any time"
+    ]
   },
   "customManagers": [
     {
@@ -49,60 +69,6 @@
   ],
   "packageRules": [
     {
-      "description": "Automerge only mature, non-critical Gradle patch updates after CI",
-      "matchManagers": [
-        "gradle"
-      ],
-      "matchUpdateTypes": [
-        "patch"
-      ],
-      "minimumReleaseAge": "7 days",
-      "automerge": true,
-      "automergeType": "pr",
-      "platformAutomerge": true
-    },
-    {
-      "description": "Critical runtime and build providers always require manual review",
-      "matchManagers": [
-        "gradle"
-      ],
-      "matchPackageNames": [
-        "/^org\\.jetbrains\\.kotlin/",
-        "/^io\\.ktor/",
-        "/^io\\.micrometer:/",
-        "/^io\\.insert-koin:/",
-        "/^ch\\.qos\\.logback:/",
-        "dev.detekt",
-        "org.cyclonedx.bom"
-      ],
-      "automerge": false,
-      "addLabels": [
-        "supply-chain-review"
-      ]
-    },
-    {
-      "description": "CI actions, scanners, Gradle and the runtime base image require manual review",
-      "matchManagers": [
-        "github-actions",
-        "gradle-wrapper",
-        "custom.regex"
-      ],
-      "automerge": false,
-      "addLabels": [
-        "supply-chain-review"
-      ]
-    },
-    {
-      "description": "Major updates always require manual review",
-      "matchUpdateTypes": [
-        "major"
-      ],
-      "automerge": false,
-      "addLabels": [
-        "major-update"
-      ]
-    },
-    {
       "description": "Keep the pinned distroless Java 21 nonroot flavor",
       "matchDatasources": [
         "docker"
@@ -110,11 +76,7 @@
       "matchPackageNames": [
         "gcr.io/distroless/java21-debian13"
       ],
-      "allowedVersions": "/^nonroot$/",
-      "automerge": false,
-      "addLabels": [
-        "supply-chain-review"
-      ]
+      "allowedVersions": "/^nonroot$/"
     },
     {
       "description": "Group non-major GitHub Actions updates",
