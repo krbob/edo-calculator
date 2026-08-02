@@ -56,16 +56,6 @@
       ],
       "datasourceTemplate": "docker",
       "versioningTemplate": "docker"
-    },
-    {
-      "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.github/workflows/ci\\.yml$/"
-      ],
-      "matchStrings": [
-        "renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+version:\\s+(?<currentValue>v\\d+\\.\\d+\\.\\d+)"
-      ],
-      "versioningTemplate": "semver-coerced"
     }
   ],
   "packageRules": [
