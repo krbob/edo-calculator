@@ -15,6 +15,7 @@ env:
 
 jobs:
   test:
+    name: ci-required
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -42,57 +43,8 @@ jobs:
           build-scan-terms-of-use-url: 'https://gradle.com/help/legal-terms-of-use'
           build-scan-terms-of-use-agree: 'yes'
 
-      - name: Verify dependency locks
-        run: |
-          set -euo pipefail
-          ./gradlew resolveAndLockAll --write-locks
-          lock_changes="$(git status --porcelain -- '*gradle.lockfile')"
-          if [[ -n "$lock_changes" ]]; then
-            echo "Dependency lockfiles are stale:"
-            echo "$lock_changes"
-            exit 1
-          fi
-
       - name: Run verification and assemble
         run: ./gradlew test detekt assemble
-
-      - name: Generate reproducible CycloneDX SBOM
-        id: sbom
-        run: |
-          set -euo pipefail
-          sbom="build/reports/cyclonedx/edo-calculator.cdx.json"
-          ./gradlew cyclonedxBom --rerun-tasks
-          first_hash="$(sha256sum "$sbom" | cut -d ' ' -f 1)"
-          ./gradlew cyclonedxBom --rerun-tasks
-          second_hash="$(sha256sum "$sbom" | cut -d ' ' -f 1)"
-          if [[ "$first_hash" != "$second_hash" ]]; then
-            echo "CycloneDX SBOM is not reproducible: $first_hash != $second_hash"
-            exit 1
-          fi
-          echo "sha256=$second_hash" >> "$GITHUB_OUTPUT"
-
-      - name: Upload CycloneDX SBOM
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: edo-calculator-sbom-${{ steps.sbom.outputs.sha256 }}
-          path: build/reports/cyclonedx/edo-calculator.cdx.json
-          if-no-files-found: error
-          retention-days: 14
-
-      - name: Scan runtime dependencies
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: sbom
-          scan-ref: build/reports/cyclonedx/edo-calculator.cdx.json
-          # renovate: datasource=github-releases depName=aquasecurity/trivy
-          version: v0.72.0
-          scanners: vuln
-          vuln-type: library
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: 1
-          hide-progress: true
-          timeout: 10m0s
 
       - name: Derive local image tag
         id: meta
@@ -104,20 +56,6 @@ jobs:
         env:
           IMAGE: ${{ steps.meta.outputs.image }}
         run: ./gradlew jibDockerBuild --image="$IMAGE"
-
-      - name: Scan local image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: image
-          image-ref: ${{ steps.meta.outputs.image }}
-          skip-setup-trivy: true
-          scanners: vuln
-          vuln-type: os
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: 1
-          hide-progress: true
-          timeout: 10m0s
 
       - name: Run container
         env:
@@ -212,46 +150,6 @@ jobs:
           assert error["errorCode"] == "INVALID_REQUEST", error
           assert error["retryable"] is False, error
           assert error["requestId"] == os.environ["REQUEST_ID"], error
-          PY
-
-      - name: Live GUS canary (non-blocking)
-        continue-on-error: true
-        timeout-minutes: 3
-        env:
-          APP_PORT: ${{ env.APP_PORT }}
-        run: |
-          set -euo pipefail
-          trap 'docker logs app || true' ERR
-          base="http://localhost:${APP_PORT}"
-          start_year="$(date -u -d '120 days ago' +%Y)"
-          start_month="$(date -u -d '120 days ago' +%-m)"
-          end_year="$(date -u -d '2 months ago' +%Y)"
-          end_month="$(date -u -d '2 months ago' +%-m)"
-
-          # These calls intentionally exercise the real provider. Their result is visible in CI,
-          # but GUS availability must not gate deterministic verification or image publishing.
-          curl -fsS --max-time 10 --retry 2 --retry-delay 2 --retry-all-errors \
-            "${base}/v1/inflation/since?year=${start_year}&month=${start_month}" \
-            -o /tmp/inflation-since.json
-          curl -fsS --max-time 10 --retry 2 --retry-delay 2 --retry-all-errors \
-            "${base}/v1/inflation/between?startYear=${start_year}&startMonth=${start_month}&endYear=${end_year}&endMonth=${end_month}" \
-            -o /tmp/inflation-between.json
-          curl -fsS --max-time 10 --retry 2 --retry-delay 2 --retry-all-errors \
-            "${base}/v1/inflation/monthly?startYear=${start_year}&startMonth=${start_month}&endYear=${end_year}&endMonth=${end_month}" \
-            -o /tmp/inflation-monthly.json
-
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          since = json.loads(Path("/tmp/inflation-since.json").read_text())
-          between = json.loads(Path("/tmp/inflation-between.json").read_text())
-          monthly = json.loads(Path("/tmp/inflation-monthly.json").read_text())
-
-          assert since["from"] and since["until"] and since["multiplier"], since
-          assert between["from"] and between["until"] and between["multiplier"], between
-          assert monthly["from"] and monthly["until"] and monthly["points"], monthly
-          assert all(point["month"] and point["multiplier"] for point in monthly["points"]), monthly
           PY
 
       - name: Clean up

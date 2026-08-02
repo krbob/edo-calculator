@@ -55,16 +55,11 @@ Agregowany CycloneDX 1.6 SBOM zależności produkcyjnych:
 
 Plik powstaje w `build/reports/cyclonedx/edo-calculator.cdx.json`. Nie zawiera zależności testowych ani losowego numeru seryjnego, a `metadata.timestamp` jest normalizowany do epoki, dzięki czemu wynik dla tego samego źródła jest powtarzalny.
 
-## Blokady zależności
+## Zależności
 
-Wszystkie rozwiązywalne konfiguracje Gradle są blokowane w repozytoryjnych `*gradle.lockfile`. Po świadomej zmianie wersji:
-
-```bash
-./gradlew resolveAndLockAll --write-locks
-git status --short -- '*gradle.lockfile'
-```
-
-Należy przejrzeć i zacommitować wynik. Lockfile nie powinny być poprawiane ręcznie. CI ponownie wykonuje rozwiązanie i odrzuca niespójny stan.
+Wersje bezpośrednich zależności są zapisane w katalogu wersji Gradle. Zależności
+przechodnie rozwiązuje Gradle podczas budowania, więc aktualizacja wersji nie
+wymaga regenerowania osobnych lockfile'ów.
 
 Wrapper ma zapisany SHA-256 dystrybucji i włączoną walidację URL. Jawny toolchain wymusza Java 21 we wszystkich modułach.
 
