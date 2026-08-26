@@ -57,7 +57,7 @@ val publishMultiPlatformImage = providers.gradleProperty("publishMultiPlatformIm
     .getOrElse(false)
 
 val jibBaseImage =
-    "gcr.io/distroless/java21-debian13:nonroot@sha256:e7c40c2378f8c4462aea63041f6b29b7f2b9ab8e80b9217d6d5faf70dfff1779"
+    "gcr.io/distroless/java21-debian13:nonroot@sha256:bb0b3c7edc4417acdf76ea0f52bb5fae28881fe05aae6cc55af4cc4cb0200d2d"
 
 jib {
     from {
