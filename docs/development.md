@@ -117,12 +117,14 @@ Skany Trivy blokują naprawialne podatności `HIGH` i `CRITICAL`. SBOM jest arte
 
 ## Renovate
 
-Renovate tworzy dojrzałe PR-y zależności na bieżąco, bez limitu równoczesnych branchy,
-PR-ów ani limitu godzinowego. Istniejące branche może aktualizować i ponownie testować
-przez cały miesiąc. Wszystkie rodzaje aktualizacji — również major, Gradle, GitHub
-Actions, skaner i obraz bazowy — kwalifikują się do squash automerge po zielonym
-wymaganym CI. Renovate wykonuje merge wyłącznie przez pierwsze trzy dni miesiąca;
-natywny automerge GitHuba pozostaje wyłączony, aby nie ominąć tego okna.
+Renovate dziedziczy wspólną miesięczną politykę ekosystemu. Pierwszego dnia miesiąca
+tworzy maksymalnie pięć PR-ów zależności jednocześnie, a GitHub wykonuje squash merge
+każdego z nich od razu po zielonym wymaganym CI. Wszystkie rodzaje aktualizacji —
+również major, Gradle, GitHub Actions, skaner i obraz bazowy — są objęte tą samą
+polityką. Wydania z wiarygodnym timestampem dojrzewają przez siedem dni, a branche są
+rebase'owane tylko przy konflikcie. Osobne PR-y `vulnerabilityAlerts` są wyłączone,
+ponieważ omijają harmonogram; podatne zależności pozostają częścią zwykłej
+miesięcznej aktualizacji.
 
 CI każdego PR-a zależności sprawdza lockfile, pełne testy, SBOM i oba skany
 podatności. Aktualizacja digestu obrazu bazowego przechodzi również smoke kontenera.

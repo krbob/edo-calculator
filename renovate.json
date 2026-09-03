@@ -1,50 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended",
-    "helpers:pinGitHubActionDigests"
+    "github>krbob/renovate-config:monthly"
   ],
-  "timezone": "Europe/Warsaw",
-  "dependencyDashboard": true,
-  "branchPrefix": "renovate/",
-  "prCreation": "immediate",
-  "schedule": [
-    "at any time"
-  ],
-  "updateNotScheduled": true,
-  "commitHourlyLimit": 0,
-  "prConcurrentLimit": 0,
-  "branchConcurrentLimit": 0,
-  "prHourlyLimit": 0,
-  "rebaseWhen": "behind-base-branch",
-  "separateMajorMinor": true,
-  "separateMultipleMajor": false,
-  "minimumReleaseAge": "7 days",
-  "minimumReleaseAgeBehaviour": "timestamp-optional",
   "rangeStrategy": "pin",
   "pinDigests": true,
-  "automerge": true,
-  "automergeType": "pr",
-  "automergeStrategy": "squash",
-  "platformAutomerge": false,
-  "ignoreTests": false,
-  "automergeSchedule": [
-    "* * 1-3 * *"
-  ],
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": [
-      "at any time"
-    ],
-    "automerge": true
-  },
-  "vulnerabilityAlerts": {
-    "enabled": true,
-    "automerge": true,
-    "schedule": [
-      "at any time"
-    ]
-  },
   "customManagers": [
     {
       "customType": "regex",
