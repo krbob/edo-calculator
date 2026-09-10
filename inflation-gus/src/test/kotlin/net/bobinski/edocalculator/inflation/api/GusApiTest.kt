@@ -99,6 +99,12 @@ class GusApiTest : KoinTest {
         var hits = 0
         val registry = SimpleMeterRegistry()
         val metrics = MicrometerGusMetrics(registry)
+        assertEquals(
+            0L,
+            requireNotNull(registry.find("edo.gus.fetch")
+                .tag("attribute", "monthly").tag("endpoint", "indicator").tag("outcome", "success").timer()).count()
+        )
+        assertEquals(0.0, requireNotNull(registry.find("edo.gus.retries").tag("reason", "rate_limited").counter()).count())
         val client = http {
             hits++
             if (hits == 1) respond("too many", HttpStatusCode.TooManyRequests)

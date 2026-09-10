@@ -34,40 +34,55 @@ internal fun interface GusFetchObservation {
 }
 
 internal class MicrometerGusMetrics(private val registry: MeterRegistry) : GusMetrics {
+    init {
+        GusAttribute.entries.forEach { attribute ->
+            GusEndpoint.entries.forEach { endpoint ->
+                GusFetchOutcome.entries.forEach { outcome -> fetchTimer(attribute, endpoint, outcome) }
+            }
+            GusCacheResult.entries.forEach { result -> cacheCounter(attribute, result) }
+        }
+        RetryReason.entries.forEach { reason -> retryCounter(reason) }
+    }
+
     override fun startFetch(attribute: GusAttribute, endpoint: GusEndpoint): GusFetchObservation {
         val sample = Timer.start(registry)
         val completed = AtomicBoolean()
 
         return GusFetchObservation { outcome ->
             if (completed.compareAndSet(false, true)) {
-                sample.stop(
-                    Timer.builder(GUS_FETCH_METRIC)
-                        .description("Duration and outcome of logical GUS year fetches")
-                        .tag(ATTRIBUTE_TAG, attribute.tagValue)
-                        .tag(ENDPOINT_TAG, endpoint.tagValue)
-                        .tag(OUTCOME_TAG, outcome.tagValue)
-                        .register(registry)
-                )
+                sample.stop(fetchTimer(attribute, endpoint, outcome))
             }
         }
     }
 
     override fun recordCacheRequest(attribute: GusAttribute, result: GusCacheResult) {
+        cacheCounter(attribute, result).increment()
+    }
+
+    override fun recordRetry(reason: RetryReason) {
+        retryCounter(reason).increment()
+    }
+
+    private fun fetchTimer(attribute: GusAttribute, endpoint: GusEndpoint, outcome: GusFetchOutcome): Timer =
+        Timer.builder(GUS_FETCH_METRIC)
+            .description("Duration and outcome of logical GUS year fetches")
+            .tag(ATTRIBUTE_TAG, attribute.tagValue)
+            .tag(ENDPOINT_TAG, endpoint.tagValue)
+            .tag(OUTCOME_TAG, outcome.tagValue)
+            .register(registry)
+
+    private fun cacheCounter(attribute: GusAttribute, result: GusCacheResult): Counter =
         Counter.builder(GUS_CACHE_METRIC)
             .description("GUS cache request outcomes")
             .tag(ATTRIBUTE_TAG, attribute.tagValue)
             .tag(RESULT_TAG, result.tagValue)
             .register(registry)
-            .increment()
-    }
 
-    override fun recordRetry(reason: RetryReason) {
+    private fun retryCounter(reason: RetryReason): Counter =
         Counter.builder(GUS_RETRY_METRIC)
             .description("Additional GUS request attempts scheduled after retryable responses")
             .tag(REASON_TAG, reason.tagValue)
             .register(registry)
-            .increment()
-    }
 }
 
 internal enum class GusEndpoint(val tagValue: String) {

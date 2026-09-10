@@ -2,9 +2,12 @@ package net.bobinski.edocalculator.inflation.api
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -13,6 +16,7 @@ import java.math.BigDecimal
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlin.test.assertFailsWith
 
 class CachingGusApiTest {
@@ -238,6 +242,92 @@ class CachingGusApiTest {
 
         assertSame(cancellation, thrown)
         assertEquals(2, calls)
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `monthly reads share stale data after one slow failed refresh within the request budget`() = runTest {
+        val year = 2026
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 9, day = 10))
+        val registry = SimpleMeterRegistry()
+        var calls = 0
+        val cached = pts(year, 7)
+        val delegate = object : GusApi {
+            override suspend fun fetchYearInflation(attribute: GusAttribute, year: Int): List<GusIndicatorPoint> {
+                calls++
+                if (calls == 1) return cached
+                delay(3.seconds)
+                error("GUS request timed out")
+            }
+        }
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            metrics = MicrometerGusMetrics(registry),
+            prefetchOnInit = false
+        )
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        time.advance(2.minutes)
+
+        withTimeout(8.seconds) {
+            (1..20).map { async { api.fetchYearInflation(GusAttribute.MONTHLY, year) } }
+                .awaitAll().forEach { assertSame(cached, it) }
+            repeat(7) { assertSame(cached, api.fetchYearInflation(GusAttribute.MONTHLY, year)) }
+        }
+
+        assertEquals(2, calls)
+        assertEquals(3_000L, testScheduler.currentTime)
+        assertEquals(
+            27.0,
+            registry.counter("edo.gus.cache.requests", "attribute", "monthly", "result", "stale_fallback").count()
+        )
+    }
+
+    @Test
+    fun `failed refresh backs off without marking data fresh and retries after the cooldown`() = runTest {
+        val year = 2026
+        val time = MutableCurrentTimeProvider(fixedNow(year, month = 9, day = 10))
+        val delegate = CountingGusApi(mutableMapOf(key(year) to { pts(year, 7) }))
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = time,
+            ttl = 1.minutes,
+            refreshRetryDelay = 1.minutes,
+            prefetchOnInit = false
+        )
+        val cached = api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        time.advance(2.minutes)
+        delegate.throwOn += key(year)
+        assertSame(cached, api.fetchYearInflation(GusAttribute.MONTHLY, year))
+
+        time.advance(59.seconds)
+        delegate.throwOn -= key(year)
+        assertSame(cached, api.fetchYearInflation(GusAttribute.MONTHLY, year))
+        assertEquals(2, delegate.calls.getValue(key(year)))
+
+        time.advance(1.seconds)
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(3, delegate.calls.getValue(key(year)))
+        api.fetchYearInflation(GusAttribute.MONTHLY, year)
+        assertEquals(3, delegate.calls.getValue(key(year)))
+    }
+
+    @Test
+    fun `cold cache preserves provider failure instead of returning missing data as success`() = runTest {
+        val year = 2026
+        val delegate = CountingGusApi(mutableMapOf(key(year) to { pts(year, 7) }))
+        delegate.throwOn += key(year)
+        val api = CachingGusApi(
+            delegate = delegate,
+            currentTimeProvider = MutableCurrentTimeProvider(fixedNow(year)),
+            prefetchOnInit = false
+        )
+
+        assertFailsWith<IllegalStateException> { api.fetchYearInflation(GusAttribute.MONTHLY, year) }
+        delegate.throwOn -= key(year)
+        assertEquals(7, api.fetchYearInflation(GusAttribute.MONTHLY, year).size)
+        assertEquals(2, delegate.calls.getValue(key(year)))
     }
 
     @Test

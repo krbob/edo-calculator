@@ -10,12 +10,14 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 internal class CachingGusApi(
     private val delegate: GusApi,
     private val currentTimeProvider: CurrentTimeProvider,
     private val ttl: Duration = 1.hours,
+    private val refreshRetryDelay: Duration = 1.minutes,
     private val metrics: GusMetrics = GusMetrics.NO_OP,
     prefetchScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     prefetchOnInit: Boolean = true
@@ -24,7 +26,8 @@ internal class CachingGusApi(
     private data class Entry(
         val data: List<GusIndicatorPoint>,
         val storedAt: Instant,
-        val complete: Boolean
+        val complete: Boolean,
+        val retryAfter: Instant? = null
     )
 
     private data class CacheKey(val attribute: GusAttribute, val year: Int)
@@ -41,16 +44,10 @@ internal class CachingGusApi(
         val key = CacheKey(attribute, year)
         val lock = locks.computeIfAbsent(key) { Mutex() }
 
-        cache[key]?.takeIf { it.isFresh(year) }?.let { entry ->
-            metrics.recordCacheRequest(attribute, GusCacheResult.HIT)
-            return entry.data
-        }
+        cachedData(key)?.let { return it }
 
         return lock.withLock {
-            cache[key]?.takeIf { it.isFresh(year) }?.let { entry ->
-                metrics.recordCacheRequest(attribute, GusCacheResult.HIT)
-                return@withLock entry.data
-            }
+            cachedData(key)?.let { return@withLock it }
 
             val refreshed = try {
                 delegate.fetchYearInflation(attribute, year)
@@ -59,6 +56,8 @@ internal class CachingGusApi(
                 throw e
             } catch (e: Exception) {
                 cache[key]?.let { entry ->
+                    cache[key] = entry.copy(retryAfter = currentTimeProvider.instant() + refreshRetryDelay)
+                    logger.warn("GUS refresh failed for {} year {}; using cached data: {}", attribute, year, e.message)
                     metrics.recordCacheRequest(attribute, GusCacheResult.STALE_FALLBACK)
                     return@withLock entry.data
                 }
@@ -71,6 +70,17 @@ internal class CachingGusApi(
             metrics.recordCacheRequest(attribute, GusCacheResult.LOAD)
             entry.data
         }
+    }
+
+    private fun cachedData(key: CacheKey): List<GusIndicatorPoint>? {
+        val entry = cache[key] ?: return null
+        val result = when {
+            entry.isFresh(key.year) -> GusCacheResult.HIT
+            entry.retryAfter?.let { currentTimeProvider.instant() < it } == true -> GusCacheResult.STALE_FALLBACK
+            else -> return null
+        }
+        metrics.recordCacheRequest(key.attribute, result)
+        return entry.data
     }
 
     internal suspend fun awaitWarmup() {

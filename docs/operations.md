@@ -60,6 +60,14 @@ Usługa korzysta z `https://api-sdp.stat.gov.pl` bez klucza API. Dane przechodz�
 
 Cache domenowy nie jest rozgrzewany podczas startu. Jeśli odświeżenie nie powiedzie się, istniejący wpis może zostać użyty jako `stale_fallback`. Po restarcie oba cache mogą być zimne, a pierwsze złożone zapytanie może być wyraźnie droższe.
 
+Po nieudanym odświeżeniu istniejącego wpisu kolejne próby dla tego samego atrybutu
+i roku są wstrzymane na minutę. Odczyty w tym czasie korzystają z danych cache
+i są liczone jako `stale_fallback`; data udanego pobrania nie jest zmieniana.
+Zapobiega to ponawianiu tego samego nieudanego pobrania dla każdego miesiąca
+w jednej serii oraz przez żądania oczekujące na ten sam wpis. Po minucie następny
+odczyt ponownie próbuje odświeżenia. Anulowanie żądania nadal przerywa pracę,
+a brak wpisu lub wymaganego miesiąca nadal kończy się błędem.
+
 Od danych za 2026 rok integracja GUS korzysta z nowego endpointu zmiennych. Dla roku uruchamia odczyty miesięcy, które są ograniczone wspólnym limitem 5 żądań na sekundę i 5 równoległych wywołań. Duże odpowiedzi GUS mogą chwilowo rozszerzyć heap JVM i podnieść RSS kontenera; sam wysoki poziom pamięci po takim żądaniu nie dowodzi wycieku.
 
 ## Timeouty i retry
@@ -80,11 +88,19 @@ Przekroczenie budżetu, awaria dostawcy lub brak CPI zwracają `503` z kodem odp
 Najważniejsze serie Prometheus:
 
 - `edo_http_server_requests_seconds` — timer HTTP z etykietami `method`, `route` i `status`;
+- `edo_http_responses_total` — odpowiedzi aplikacyjne według `status_class`, bez probe'ów i scrape;
 - `edo_http_server_requests_active` — liczba aktywnych żądań;
 - `edo_gus_fetch_seconds` — logiczne pobranie roku według atrybutu, endpointu i wyniku;
 - `edo_gus_cache_requests_total` — `hit`, `load`, `stale_fallback`, `load_error`, `cancelled`;
 - `edo_gus_retries_total` — retry według `rate_limited` lub `server_error`;
 - standardowe serie JVM Micrometera.
+
+Klasy odpowiedzi `1xx`, `2xx`, `3xx`, `4xx`, `429`, `5xx`, `other` oraz wszystkie
+skończone kombinacje wyników GUS są rejestrowane z zerem przed ruchem. `429` nie
+jest ponownie liczone w `4xx`. Do alertów błędów używaj `edo_http_responses_total`:
+szczegółowy timer route/status powstaje dopiero przy żądaniu i `rate()` może pominąć
+pierwszą obserwację nowej serii. Każdy licznik wymaga odczytu zerowej próbki przed
+zdarzeniem; nie odtwarza błędów sprzed rozpoczęcia zbierania metryk.
 
 Przykładowe zapytania:
 

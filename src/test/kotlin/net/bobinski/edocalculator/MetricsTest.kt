@@ -9,6 +9,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.testing.testApplication
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import io.ktor.server.response.respond
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -16,6 +17,34 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class MetricsTest {
+
+    @Test
+    fun `response counters expose a zero baseline and count the first error without probe noise`() = testApplication {
+        application {
+            module()
+            routing {
+                get("/test/unavailable") { call.respond(HttpStatusCode.ServiceUnavailable) }
+                get("/test/limited") { call.respond(HttpStatusCode.TooManyRequests) }
+                get("/test/unhandled") { error("test failure") }
+            }
+        }
+        val before = client.get("/metrics").bodyAsText()
+        assertTrue(before.contains("edo_http_responses_total{status_class=\"5xx\"} 0.0"), before)
+        assertTrue(before.contains("edo_http_responses_total{status_class=\"429\"} 0.0"), before)
+
+        client.get("/healthz")
+        client.get("/readyz")
+        client.get("/test/unavailable")
+        val first = client.get("/metrics").bodyAsText()
+        assertTrue(first.contains("edo_http_responses_total{status_class=\"5xx\"} 1.0"), first)
+        client.get("/test/limited")
+        client.get("/test/unhandled")
+        val after = client.get("/metrics").bodyAsText()
+        assertTrue(after.contains("edo_http_responses_total{status_class=\"5xx\"} 2.0"), after)
+        assertTrue(after.contains("edo_http_responses_total{status_class=\"429\"} 1.0"), after)
+        assertTrue(after.contains("edo_http_responses_total{status_class=\"4xx\"} 0.0"), after)
+        assertTrue(after.contains("edo_http_responses_total{status_class=\"2xx\"} 0.0"), after)
+    }
 
     @Test
     fun `Prometheus endpoint exposes bounded HTTP request metrics without scrape self-noise`() = testApplication {
