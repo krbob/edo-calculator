@@ -376,13 +376,14 @@ class GusApiTest : KoinTest {
     }
 
     @Test
-    fun `variable endpoint extracts matching data point from paginated response`() = runTest {
+    fun `variable endpoint reads aggregate CPI from page zero of the small aggregates section`() = runTest {
         val year = GusApiImpl.FIRST_COICOP_2018_YEAR
         val attribute = GusAttribute.MONTHLY
         val client = http { req ->
             assertEquals("/api/1.1.0/variable/variable-data-section", req.url.encodedPath)
             assertEquals("305", req.url.parameters["id-zmienna"])
-            assertEquals("1698", req.url.parameters["id-przekroj"])
+            assertEquals("1722", req.url.parameters["id-przekroj"])
+            assertEquals("0", req.url.parameters["page"])
             assertEquals(year.toString(), req.url.parameters["id-rok"])
             val periodId = req.url.parameters["id-okres"]!!.toInt()
             respond(
@@ -398,6 +399,28 @@ class GusApiTest : KoinTest {
         assertEquals(12, points.size)
         assertEquals((247..258).toList(), points.map { it.periodId })
         assertEquals(year, points[0].year)
+    }
+
+    @Test
+    fun `aggregate response selects all items and all households with the requested measure`() = runTest {
+        // Selected rows from GUS section 1722 for January 2026, retrieved on 2026-11-02.
+        val payload = checkNotNull(javaClass.getResource("/gus-aggregates-january-2026.json")).readText()
+        val client = http { req ->
+            assertEquals("1722", req.url.parameters["id-przekroj"])
+            assertEquals("0", req.url.parameters["page"])
+            if (req.url.parameters["id-okres"] == "247") {
+                respond(payload, HttpStatusCode.OK, headersOf(HttpHeaders.ContentType, "application/json"))
+            } else {
+                respond("", HttpStatusCode.NotFound)
+            }
+        }
+        val api = GusApiImpl(client = client, currentTimeProvider = MutableCurrentTimeProvider(fixedNow(2026, 2)))
+
+        val monthly = api.fetchYearInflation(GusAttribute.MONTHLY, 2026).single()
+        val annual = api.fetchYearInflation(GusAttribute.ANNUAL, 2026).single()
+
+        assertEquals(GusIndicatorPoint(2026, 247, BigDecimal("100.7")), monthly)
+        assertEquals(GusIndicatorPoint(2026, 247, BigDecimal("102.1")), annual)
     }
 
     @Test
@@ -428,7 +451,7 @@ class GusApiTest : KoinTest {
             val periodId = req.url.parameters["id-okres"]!!.toInt()
             val page = req.url.parameters["page"]!!.toInt()
             pageHits[periodId] = (pageHits[periodId] ?: 0) + 1
-            if (page < 2) {
+            if (page == 0) {
                 respond(
                     variablePageWithoutTarget(year, periodId, 5000),
                     HttpStatusCode.OK,
