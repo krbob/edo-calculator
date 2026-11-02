@@ -17,6 +17,22 @@ import org.junit.jupiter.api.Test
 
 class WebRouteTest {
     @Test
+    fun `versioned emission catalog uses the same snapshot as the UI`() = testApplication {
+        application { module() }
+        val response = client.get("/v1/edo/series")
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertTrue(response.headers[HttpHeaders.ContentType].orEmpty().startsWith("application/json"))
+        assertEquals(client.get("/ui/series.json").bodyAsText(), response.bodyAsText())
+        val catalog = Json.parseToJsonElement(response.bodyAsText()).jsonObject
+        assertEquals(setOf("updatedAt", "series"), catalog.keys)
+        catalog.getValue("series").jsonArray.forEach { entry ->
+            assertEquals(setOf("code", "saleStart", "saleEnd", "firstPeriodRate", "margin", "sourceUrl", "verifiedAt"),
+                entry.jsonObject.keys)
+        }
+        assertEquals(HttpStatusCode.MethodNotAllowed, client.post("/v1/edo/series").status)
+    }
+
+    @Test
     fun `web UI and its bundled assets are served without an external provider`() = testApplication {
         application { module() }
 

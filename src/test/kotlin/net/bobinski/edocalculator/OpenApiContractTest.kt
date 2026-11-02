@@ -205,7 +205,7 @@ class OpenApiContractTest {
                 assertNotEquals(HttpStatusCode.MethodNotAllowed, response.status, "$path does not support GET")
                 assertEquals(CONTRACT_REQUEST_ID, response.headers[HttpHeaders.XRequestId])
                 assertEquals(
-                    if (path.startsWith("/v1/")) HttpStatusCode.BadRequest else HttpStatusCode.OK,
+                    if (path in EXPECTED_PARAMETERS) HttpStatusCode.BadRequest else HttpStatusCode.OK,
                     response.status,
                     "Unexpected no-parameter response for $path"
                 )
@@ -340,6 +340,7 @@ class OpenApiContractTest {
         val DOMAIN_RESPONSE_STATUSES = setOf("200", "400", "503", "500")
         val API_ERROR_FIELDS = setOf("error", "errorCode", "retryable", "requestId")
         val EXPECTED_PATHS = setOf(
+            "/v1/edo/series",
             "/v1/edo/value",
             "/v1/edo/value/at",
             "/v1/edo/history",

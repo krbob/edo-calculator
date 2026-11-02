@@ -98,7 +98,9 @@ Katalog `build/` jest ignorowany i wygenerowanego klienta nie należy commitowa�
 Strona `/` i zasoby `/ui/*` są serwowane z `src/main/resources/web` przez Ktor.
 Interfejs używa natywnych modułów JavaScript oraz istniejących obliczeń `/v1`; nie ma etapu
 budowania frontendu, CDN ani dodatkowych zależności runtime. OpenAPI pozostaje kontraktem API
-obliczeniowego. `series.json` jest zasobem interfejsu, nie nowym endpointem domenowym.
+obliczeniowego. Ten sam snapshot `series.json` jest dostępny przez wersjonowany endpoint
+`GET /v1/edo/series` opisany w OpenAPI. Konsument zapisuje wybrane warunki u siebie;
+aktualizacja katalogu nie powinna automatycznie nadpisywać parametrów istniejących inwestycji.
 
 Formularz wymaga całkowitej liczby obligacji i przekazuje kapitał nominalny jako dokładny tekst
 dziesiętny. Kwoty z API są formatowane bez konwersji do `Number`; liczby zmiennoprzecinkowe są

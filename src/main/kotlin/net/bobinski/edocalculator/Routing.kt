@@ -10,6 +10,7 @@ import net.bobinski.edocalculator.domain.usecase.CalculateEdoHistoryUseCase
 import net.bobinski.edocalculator.domain.usecase.CalculateEdoValueUseCase
 import net.bobinski.edocalculator.domain.usecase.CalculateMonthlyInflationSeriesUseCase
 import net.bobinski.edocalculator.route.edoRoute
+import net.bobinski.edocalculator.route.edoSeriesRoute
 import net.bobinski.edocalculator.route.fallbackErrorRoute
 import net.bobinski.edocalculator.route.healthRoute
 import net.bobinski.edocalculator.route.inflationRoute
@@ -39,6 +40,7 @@ fun Application.configureRouting() {
         inflationRoute()
         edoRoute()
         route("/v1") {
+            edoSeriesRoute()
             inflationRoute()
             edoRoute()
         }
