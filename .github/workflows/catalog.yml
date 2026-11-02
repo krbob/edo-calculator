@@ -1,0 +1,68 @@
+name: Refresh EDO catalog
+
+on:
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: edo-catalog-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+      checks: read # Required by gh run watch while waiting for CI.
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+
+      - name: Test catalog automation
+        run: |
+          python3 scripts/test-edo-catalog.py
+          python3 scripts/test-catalog-publish.py
+
+      - name: Check official emission pages
+        run: |
+          set -euo pipefail
+          python3 scripts/update-edo-catalog.py --daily 2>&1 | tee "$RUNNER_TEMP/catalog-refresh.log"
+          cat "$RUNNER_TEMP/catalog-refresh.log" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Create or update catalog PR only when terms changed
+        id: catalog
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          branch: automation/edo-catalog
+          base: main
+          add-paths: src/main/resources/web/series.json
+          delete-branch: true
+          commit-message: 'chore: update verified EDO emission terms'
+          title: 'chore: update verified EDO emission terms'
+          body: |
+            Updates the catalog from official emission pages after validating series codes, sale dates, first-year rates and margins.
+            Verification timestamps alone do not change the catalog. Required CI runs before automatic merge, followed by image publication.
+
+      - name: Verify, merge and publish changed catalog
+        if: steps.catalog.outputs.pull-request-number != '' && steps.catalog.outputs.pull-request-operation != 'closed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CATALOG_PR: ${{ steps.catalog.outputs.pull-request-number }}
+          CATALOG_SHA: ${{ steps.catalog.outputs.pull-request-head-sha }}
+        run: python3 scripts/publish-edo-catalog.py --pr "$CATALOG_PR" --sha "$CATALOG_SHA"
+
+      - name: Report failure
+        if: failure()
+        run: |
+          echo '::error::Catalog automation failed. Inspect the failed step for the affected series or CI run.'
+          echo 'Catalog automation failed. A failed page check preserves the previous catalog. See the failed step for details.' >> "$GITHUB_STEP_SUMMARY"

@@ -35,6 +35,7 @@ Testy, analiza statyczna i artefakty JVM:
 ./gradlew test detekt assemble
 node --test scripts/web-model.test.mjs
 python3 scripts/test-edo-catalog.py
+python3 scripts/test-catalog-publish.py
 ```
 
 Sprawdzenie układu dokumentacji, lokalnych linków i bezpiecznych przykładów obrazów:
@@ -116,10 +117,36 @@ python3 scripts/update-edo-catalog.py
 
 Domyślny zakres to emisje od 2017 roku do bieżącego miesiąca; można podać `--from-year 2024`.
 Skrypt wykonuje najwyżej dwa żądania jednocześnie. Sprawdza symbol, daty sprzedaży oraz jawne
-wartości stopy pierwszego okresu i marży. Niedostępne albo niespójne wpisy są raportowane,
-a istniejące dane pozostają zachowane z poprzednią datą weryfikacji. Całkowite niepowodzenie
-nie nadpisuje pliku. Przed zatwierdzeniem przejrzyj diff `series.json`, uruchom testy powyżej
-i przebuduj aplikację. Katalog nie odświeża się automatycznie przy uruchomieniu.
+wartości stopy pierwszego okresu i marży. Błąd bieżącej lub wcześniej zapisanej serii przerywa
+całą aktualizację bez nadpisania pliku. Nieznane, niedostępne serie archiwalne są raportowane
+i pomijane przy pełnym odświeżeniu. Błędy sieci, `429` i `5xx` mają najwyżej trzy próby;
+błędy parsowania i `404` nie są ponawiane w tym samym uruchomieniu.
+
+Tryb `--daily` sprawdza bieżącą i poprzednią emisję oraz najstarszą serię z katalogu jako
+kontrolę starszego HTML. Uzupełnia też miesiące pominięte od ostatniej zapisanej emisji.
+Każdy odczyt tego trybu jest wymagany: nawet częściowy błąd kończy proces kodem `1`
+i zachowuje cały poprzedni plik. Opcja `--output /tmp/series.json` pozwala sprawdzić kopię katalogu.
+
+Brak zmian warunków oznacza brak zapisu pliku, także przy kolejnym dniu weryfikacji.
+`verifiedAt` opisuje datę zapisania zweryfikowanych warunków danej serii, a `updatedAt` ostatnią
+zmianę katalogu. Wynik najnowszej kontroli jest w GitHub Actions. Same daty nie powodują
+commita ani publikacji obrazu. Przed ręcznym zatwierdzeniem przejrzyj diff `series.json`
+i uruchom testy. Katalog nie odświeża się podczas startu aplikacji.
+
+Workflow [Refresh EDO catalog](../.github/workflows/catalog.yml) działa codziennie o 07:17 UTC
+(08:17 zimą i 09:17 latem w Polsce) i na żądanie przez `workflow_dispatch`.
+Zmiana katalogu tworzy lub aktualizuje PR z gałęzi `automation/edo-catalog`.
+Automat jawnie uruchamia `ci.yml` na tej gałęzi, czeka na sukces i scala wyłącznie zmianę
+`series.json`, sprawdzając SHA przed i po testach. Następnie uruchamia CI na `main`
+i czeka na publikację obrazu. Jawne uruchomienia są potrzebne, bo push i merge wykonane
+przez `GITHUB_TOKEN` nie uruchamiają workflow typu `push`.
+
+Automatyzacja używa wyłącznie `GITHUB_TOKEN`; wymaga uprawnień `contents: write`,
+`pull-requests: write`, `actions: write`, `checks: read` oraz włączenia w ustawieniach repozytorium
+**Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**.
+Ochrona `main` i wymagany `ci-required` nadal obowiązują. Po błędzie parsowania, CI,
+merge lub publikacji cały workflow jest nieudany; szczegóły powiadomień opisuje
+[instrukcja operacyjna](operations.md#alerty-katalogu-emisji).
 
 Tokeny wizualne w `web/vendor` to niezmieniony snapshot `stock-ecosystem-ui` v1.0.1
 z repozytorium `stock-analyst-ui`, rewizja `fd1295a60c61e54e9523661a9ae2713680d185d0`.
@@ -148,7 +175,7 @@ Zmiany wyłącznie opisowe można odłożyć do następnego świadomego upgrade'
 Workflow `.github/workflows/ci.yml` ma dwa etapy:
 
 1. `test` — sprawdza dokumentację i lockfile, uruchamia testy/detekt/assemble, weryfikuje powtarzalność SBOM, skanuje zależności i system obrazu, buduje kontener oraz wykonuje deterministyczny smoke;
-2. `publish` — po zielonym pushu do `main` publikuje manifesty `amd64` i `arm64` do GHCR.
+2. `publish` — po zielonym pushu lub `workflow_dispatch` na `main` publikuje manifesty `amd64` i `arm64` do GHCR.
 
 Rzeczywisty GUS jest sprawdzany osobnym `Live GUS canary (non-blocking)`. Jego chwilowa awaria jest widoczna w runie, ale nie blokuje publikacji zweryfikowanego obrazu.
 

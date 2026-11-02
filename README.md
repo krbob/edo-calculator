@@ -59,7 +59,8 @@ za wcześniejszy wykup.
 
 Interfejs jest dołączony do tej samej aplikacji i obrazu; nie wymaga Node.js do uruchomienia
 ani osobnego serwera. Katalog serii jest wersjonowanym snapshotem oficjalnych warunków emisji,
-z datą sprawdzenia i linkiem do źródła. Sposób aktualizacji opisuje
+z datą sprawdzenia i linkiem do źródła. GitHub Actions codziennie sprawdza emisje;
+nowe dane przechodzą CI i automatyczną publikację obrazu. Sposób aktualizacji opisuje
 [przewodnik rozwoju](docs/development.md#webui-i-katalog-serii).
 
 Pełna lokalna weryfikacja:
@@ -68,6 +69,7 @@ Pełna lokalna weryfikacja:
 ./gradlew test detekt assemble
 node --test scripts/web-model.test.mjs
 python3 scripts/test-edo-catalog.py
+python3 scripts/test-catalog-publish.py
 ```
 
 Testy jednostkowe i kontraktowe nie wymagają działającego GUS. Rzeczywisty GUS jest sprawdzany w CI osobnym, nieblokującym canary.
