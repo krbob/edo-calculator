@@ -8,7 +8,7 @@ koin-version = "4.2.2"
 detekt-version = "2.0.0-alpha.6"
 swagger-parser-version = "2.1.48"
 micrometer-version = "1.17.2"
-cyclonedx-version = "3.4.1"
+cyclonedx-version = "3.5.1"
 
 [libraries]
 ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor-version" }
