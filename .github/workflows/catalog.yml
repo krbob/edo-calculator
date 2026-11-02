@@ -53,7 +53,7 @@ jobs:
             Verification timestamps alone do not change the catalog. Required CI runs before automatic merge, followed by image publication.
 
       - name: Verify, merge and publish changed catalog
-        if: steps.catalog.outputs.pull-request-number != ''
+        if: steps.catalog.outputs.pull-request-number != '' && steps.catalog.outputs.pull-request-operation != 'closed'
         env:
           GH_TOKEN: ${{ github.token }}
           CATALOG_PR: ${{ steps.catalog.outputs.pull-request-number }}
