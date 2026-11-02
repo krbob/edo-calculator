@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Sprawdź oprocentowanie i naliczone odsetki swoich dziesięcioletnich obligacji EDO.">
+  <title>EDO · Kalkulator obligacji</title>
+  <link rel="icon" href="/ui/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/ui/vendor/tokens.css">
+  <link rel="stylesheet" href="/ui/app.css">
+  <script type="module" src="/ui/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#calculator">Przejdź do kalkulatora</a>
+  <header class="site-header">
+    <a class="brand" href="/" aria-label="EDO — strona główna"><span class="brand-mark" aria-hidden="true">e.</span><span>EDO <span class="brand-subtitle">/ kalkulator obligacji</span></span></a>
+    <span class="header-note">10 lat · roczna kapitalizacja</span>
+  </header>
+  <main>
+    <div class="intro"><p class="eyebrow">TWOJE OBLIGACJE, W LICZBACH</p><h1>Ile wypracowały Twoje EDO?</h1><p>Sprawdź oprocentowanie, naliczone odsetki i wzrost wartości od dnia zakupu.</p></div>
+    <div class="workspace">
+      <section class="panel calculator" id="calculator" aria-labelledby="form-heading">
+        <div class="section-label"><span class="step">01</span><h2 id="form-heading">Wybierz obligacje</h2></div>
+        <form id="bond-form">
+          <label for="series">Seria obligacji</label>
+          <select id="series" name="series" required disabled aria-describedby="series-help"><option value="">Ładowanie katalogu…</option></select>
+          <p class="field-help" id="series-help">Ładowanie katalogu serii…</p>
+          <label class="checkbox-label"><input type="checkbox" id="manual"> Wpisz warunki ręcznie</label>
+          <div id="terms" class="terms-grid">
+            <div><label for="first-rate">Pierwszy rok (%)</label><input id="first-rate" name="firstRate" inputmode="decimal" required readonly></div>
+            <div><label for="margin">Marża (p.p.)</label><input id="margin" name="margin" inputmode="decimal" required readonly></div>
+          </div>
+          <a id="source-link" class="source-link" hidden target="_blank" rel="noopener noreferrer">Warunki emisji ↗</a>
+          <div class="form-divider"></div>
+          <label for="purchase-date">Data zakupu</label>
+          <input id="purchase-date" name="purchaseDate" type="date" min="2000-01-01" required aria-describedby="purchase-help">
+          <p class="field-help" id="purchase-help">Dokładny dzień wyznacza okresy odsetkowe.</p>
+          <label for="quantity">Liczba obligacji</label>
+          <div class="input-unit"><input id="quantity" name="quantity" type="number" min="1" max="10000000000" step="1" value="1" required><span>szt.</span></div>
+          <p class="field-help" id="principal-hint">Kapitał nominalny: 100,00 zł</p>
+          <label for="as-of">Wycena na dzień</label>
+          <input id="as-of" name="asOf" type="date" min="2000-01-01" required>
+          <button class="primary-button" type="submit" id="calculate">Oblicz odsetki <span aria-hidden="true">↗</span></button>
+          <p id="form-status" class="field-help" role="status" aria-live="polite"></p>
+        </form>
+        <p class="catalog-note" id="catalog-note"></p>
+      </section>
+      <div class="result-area" id="result-area" aria-busy="false">
+        <div class="message error" id="error" role="alert" hidden></div>
+        <section class="panel empty-state" id="empty-state"><div class="empty-symbol" aria-hidden="true">%</div><h2>Od serii do wyniku</h2><p>Wybierz serię i dzień zakupu.<br>Resztę policzy kalkulator.</p><span>Domyślnie sprawdzasz jedną obligację o nominale 100 zł.</span></section>
+        <div id="results" hidden>
+          <div class="result-heading"><div><p class="eyebrow">TWOJA WYCENA</p><h2 id="result-title"></h2></div><span class="badge" id="result-status"></span></div>
+          <div class="summary-grid">
+            <section class="panel metric interest-metric"><h3>Naliczone odsetki brutto</h3><p class="metric-value" id="interest-value"></p><p class="metric-detail" id="return-value"></p></section>
+            <section class="panel metric"><h3 id="rate-label">Oprocentowanie w dniu wyceny</h3><p class="metric-value" id="rate-value"></p><p class="metric-detail" id="rate-detail"></p></section>
+          </div>
+          <section class="panel value-panel"><div><h3>Wartość z odsetkami</h3><p id="total-value"></p></div><dl><div><dt>Kapitał nominalny</dt><dd id="principal-value"></dd></div><div><dt>Termin wykupu</dt><dd id="maturity-value"></dd></div></dl></section>
+          <section class="panel history-panel" aria-labelledby="history-heading"><div class="section-heading"><h2 id="history-heading">Jak rosła wartość</h2><span class="field-help">PLN · brutto</span></div><p class="field-help" id="history-status" role="status"></p><div id="chart" hidden></div></section>
+          <section class="panel periods-panel" aria-labelledby="periods-heading"><div class="section-heading"><h2 id="periods-heading">Okresy odsetkowe</h2><span class="field-help" id="period-count"></span></div><div class="table-scroll" tabindex="0" role="region" aria-label="Tabela okresów odsetkowych"><table><thead><tr><th scope="col">Okres</th><th scope="col">Daty</th><th scope="col">Stopa roczna</th><th scope="col">Odsetki brutto</th></tr></thead><tbody id="periods"></tbody></table></div></section>
+          <p class="calculation-note">Wycena analityczna brutto według modelu kalkulatora. Nie uwzględnia podatku, opłaty za wcześniejszy wykup ani dyskonta przy zamianie. Kwota wypłaty może być inna.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer><span>EDO Calculator</span><span>Warunki emisji: Obligacje Skarbowe · inflacja: GUS</span></footer>
+  <noscript><p class="message error">Włącz JavaScript, aby korzystać z kalkulatora.</p></noscript>
+</body>
+</html>

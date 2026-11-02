@@ -15,6 +15,7 @@ import net.bobinski.edocalculator.route.healthRoute
 import net.bobinski.edocalculator.route.inflationRoute
 import net.bobinski.edocalculator.route.metricsRoute
 import net.bobinski.edocalculator.route.readinessRoute
+import net.bobinski.edocalculator.route.webRoute
 import org.koin.ktor.ext.getKoin
 
 fun Application.configureRouting() {
@@ -31,6 +32,7 @@ fun Application.configureRouting() {
     }
 
     routing {
+        webRoute()
         healthRoute()
         readinessRoute(readinessCheck)
         metricsRoute(koin.get())

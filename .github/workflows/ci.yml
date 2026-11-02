@@ -27,6 +27,16 @@ jobs:
       - name: Validate documentation
         run: python3 scripts/validate-docs.py
 
+      - name: Set up Node.js for dependency-free WebUI tests
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.21.0'
+
+      - name: Verify WebUI and catalog parser
+        run: |
+          node --test scripts/web-model.test.mjs
+          python3 scripts/test-edo-catalog.py
+
       - name: Validate Compose quick start
         run: docker compose config --quiet
 

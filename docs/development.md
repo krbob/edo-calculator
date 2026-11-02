@@ -3,6 +3,7 @@
 ## Wymagania
 
 - JDK 21;
+- Node.js 24+ tylko do testów WebUI (bez instalacji pakietów npm);
 - Docker tylko do budowy lub uruchamiania obrazu;
 - połączenie z Maven Central podczas pierwszego rozwiązania zależności.
 
@@ -32,6 +33,8 @@ Testy, analiza statyczna i artefakty JVM:
 
 ```bash
 ./gradlew test detekt assemble
+node --test scripts/web-model.test.mjs
+python3 scripts/test-edo-catalog.py
 ```
 
 Sprawdzenie układu dokumentacji, lokalnych linków i bezpiecznych przykładów obrazów:
@@ -88,6 +91,44 @@ docker run --rm -v "$PWD:/local" "$OPENAPI_GENERATOR_IMAGE" generate \
 ```
 
 Katalog `build/` jest ignorowany i wygenerowanego klienta nie należy commitować.
+
+## WebUI i katalog serii
+
+Strona `/` i zasoby `/ui/*` są serwowane z `src/main/resources/web` przez Ktor.
+Interfejs używa natywnych modułów JavaScript oraz istniejących obliczeń `/v1`; nie ma etapu
+budowania frontendu, CDN ani dodatkowych zależności runtime. OpenAPI pozostaje kontraktem API
+obliczeniowego. `series.json` jest zasobem interfejsu, nie nowym endpointem domenowym.
+
+Formularz wymaga całkowitej liczby obligacji i przekazuje kapitał nominalny jako dokładny tekst
+dziesiętny. Kwoty z API są formatowane bez konwersji do `Number`; liczby zmiennoprzecinkowe są
+używane jedynie do geometrii wykresu. Historia kończy się najpóźniej w dniu zapadalności.
+Zmiana formularza usuwa poprzedni wynik i anuluje stare żądanie, aby nie pokazywać wyceny
+nieaktualnych parametrów. Data domyślna używa strefy `Europe/Warsaw`.
+
+Katalog zawiera wyłącznie warunki z odczytanych stron oficjalnego serwisu
+[Obligacji Skarbowych](https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/).
+Obliczenia nadal korzystają z CPI GUS na backendzie. Odświeżenie snapshotu wymaga Pythona 3.9+
+i dostępu do internetu:
+
+```bash
+python3 scripts/update-edo-catalog.py
+```
+
+Domyślny zakres to emisje od 2017 roku do bieżącego miesiąca; można podać `--from-year 2024`.
+Skrypt wykonuje najwyżej dwa żądania jednocześnie. Sprawdza symbol, daty sprzedaży oraz jawne
+wartości stopy pierwszego okresu i marży. Niedostępne albo niespójne wpisy są raportowane,
+a istniejące dane pozostają zachowane z poprzednią datą weryfikacji. Całkowite niepowodzenie
+nie nadpisuje pliku. Przed zatwierdzeniem przejrzyj diff `series.json`, uruchom testy powyżej
+i przebuduj aplikację. Katalog nie odświeża się automatycznie przy uruchomieniu.
+
+Tokeny wizualne w `web/vendor` to niezmieniony snapshot `stock-ecosystem-ui` v1.0.1
+z repozytorium `stock-analyst-ui`, rewizja `fd1295a60c61e54e9523661a9ae2713680d185d0`.
+Test JavaScript sprawdza SHA-256 względem dołączonego manifestu.
+
+Testy JVM sprawdzają serwowanie zasobów i zachowanie błędów API. Testy Node obejmują walidację,
+precyzję kwot, rocznicę zakupu, zapadalność, datę warszawską i spójność katalogu. Testy Pythona
+sprawdzają parser na lokalnych przykładach i nie korzystają z internetu. Przy zmianach widoku
+sprawdź także formularz, wykres i komunikaty błędów w przeglądarce, na szerokim i wąskim ekranie.
 
 ## Integracja z Portfolio
 

@@ -51,10 +51,23 @@ Wymagany jest JDK 21. Projekt korzysta z wrappera Gradle, więc osobna instalacj
 ./gradlew run
 ```
 
+WebUI jest dostępne pod `http://localhost:8080/`. Wybierz serię EDO, dokładną datę zakupu,
+liczbę obligacji i dzień wyceny. Zobaczysz oprocentowanie danego okresu, odsetki brutto,
+wartość z odsetkami, wykres dzienny oraz tabelę okresów. Brakujące serie można wycenić,
+wpisując warunki emisji ręcznie. Wynik jest analityczny i nie uwzględnia podatku ani opłaty
+za wcześniejszy wykup.
+
+Interfejs jest dołączony do tej samej aplikacji i obrazu; nie wymaga Node.js do uruchomienia
+ani osobnego serwera. Katalog serii jest wersjonowanym snapshotem oficjalnych warunków emisji,
+z datą sprawdzenia i linkiem do źródła. Sposób aktualizacji opisuje
+[przewodnik rozwoju](docs/development.md#webui-i-katalog-serii).
+
 Pełna lokalna weryfikacja:
 
 ```bash
 ./gradlew test detekt assemble
+node --test scripts/web-model.test.mjs
+python3 scripts/test-edo-catalog.py
 ```
 
 Testy jednostkowe i kontraktowe nie wymagają działającego GUS. Rzeczywisty GUS jest sprawdzany w CI osobnym, nieblokującym canary.

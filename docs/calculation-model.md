@@ -11,6 +11,10 @@ Usługa wycenia dziesięcioletnią obligację EDO na podstawie parametrów przek
 - marżę dla kolejnych okresów w punktach procentowych;
 - opcjonalny `principal`, domyślnie `100.00` PLN.
 
+Dołączone WebUI może uzupełnić stopę i marżę z wersjonowanego katalogu serii. Jest to pomoc
+przy wypełnianiu formularza; API obliczeniowe nadal otrzymuje jawne parametry. Dokładna data
+zakupu pozostaje wymagana, ponieważ określa granice okresów i liczbę dni naliczania odsetek.
+
 `principal` jest analityczną bazą wyceny pro-rata. Nie musi być wielokrotnością oficjalnego nominału jednej obligacji, czyli 100 PLN. Portfolio pobiera wycenę dla 100 PLN i skaluje ją liczbą jednostek. Klient modelujący rzeczywiste zlecenie powinien osobno sprawdzać całkowitą liczbę obligacji.
 
 Model nie uwzględnia podatku, opłaty za przedterminowy wykup, ograniczeń sprzedażowych ani indywidualnych zasad rozliczenia emitenta. Wynik jest wyceną analityczną, a nie gwarantowaną kwotą wypłaty. Aktualne warunki produktu publikuje [serwis obligacji skarbowych](https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/).

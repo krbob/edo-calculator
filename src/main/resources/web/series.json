@@ -1,0 +1,1004 @@
+{
+  "updatedAt": "2026-11-02",
+  "series": [
+    {
+      "code": "EDO1136",
+      "saleStart": "2026-11-01",
+      "saleEnd": "2026-11-30",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1136/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1036",
+      "saleStart": "2026-10-01",
+      "saleEnd": "2026-10-31",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1036/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0936",
+      "saleStart": "2026-09-01",
+      "saleEnd": "2026-09-30",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0936/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0836",
+      "saleStart": "2026-08-01",
+      "saleEnd": "2026-08-31",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0836/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0736",
+      "saleStart": "2026-07-01",
+      "saleEnd": "2026-07-31",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0736/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0636",
+      "saleStart": "2026-06-01",
+      "saleEnd": "2026-06-30",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0636/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0536",
+      "saleStart": "2026-05-01",
+      "saleEnd": "2026-05-31",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0536/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0436",
+      "saleStart": "2026-04-01",
+      "saleEnd": "2026-04-30",
+      "firstPeriodRate": "5.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0436/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0336",
+      "saleStart": "2026-03-01",
+      "saleEnd": "2026-03-31",
+      "firstPeriodRate": "5.60",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0336/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0236",
+      "saleStart": "2026-02-01",
+      "saleEnd": "2026-02-28",
+      "firstPeriodRate": "5.60",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0236/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0136",
+      "saleStart": "2026-01-01",
+      "saleEnd": "2026-01-31",
+      "firstPeriodRate": "5.60",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0136/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1235",
+      "saleStart": "2025-12-01",
+      "saleEnd": "2025-12-31",
+      "firstPeriodRate": "5.60",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1235/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1135",
+      "saleStart": "2025-11-01",
+      "saleEnd": "2025-11-30",
+      "firstPeriodRate": "5.75",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1135/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1035",
+      "saleStart": "2025-10-01",
+      "saleEnd": "2025-10-31",
+      "firstPeriodRate": "6.00",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1035/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0935",
+      "saleStart": "2025-09-01",
+      "saleEnd": "2025-09-30",
+      "firstPeriodRate": "6.00",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0935/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0835",
+      "saleStart": "2025-08-01",
+      "saleEnd": "2025-08-31",
+      "firstPeriodRate": "6.00",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0835/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0735",
+      "saleStart": "2025-07-01",
+      "saleEnd": "2025-07-31",
+      "firstPeriodRate": "6.25",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0735/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0635",
+      "saleStart": "2025-06-01",
+      "saleEnd": "2025-06-30",
+      "firstPeriodRate": "6.25",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0635/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0535",
+      "saleStart": "2025-05-01",
+      "saleEnd": "2025-05-31",
+      "firstPeriodRate": "6.35",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0535/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0435",
+      "saleStart": "2025-04-01",
+      "saleEnd": "2025-04-30",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0435/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0335",
+      "saleStart": "2025-03-01",
+      "saleEnd": "2025-03-31",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0335/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0235",
+      "saleStart": "2025-02-01",
+      "saleEnd": "2025-02-28",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0235/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0135",
+      "saleStart": "2025-01-01",
+      "saleEnd": "2025-01-31",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0135/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1234",
+      "saleStart": "2024-12-01",
+      "saleEnd": "2024-12-31",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1234/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1134",
+      "saleStart": "2024-11-01",
+      "saleEnd": "2024-11-30",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1134/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1034",
+      "saleStart": "2024-10-01",
+      "saleEnd": "2024-10-31",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1034/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0934",
+      "saleStart": "2024-09-01",
+      "saleEnd": "2024-09-30",
+      "firstPeriodRate": "6.55",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0934/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0834",
+      "saleStart": "2024-08-01",
+      "saleEnd": "2024-08-31",
+      "firstPeriodRate": "6.80",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0834/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0634",
+      "saleStart": "2024-06-01",
+      "saleEnd": "2024-06-30",
+      "firstPeriodRate": "6.80",
+      "margin": "2.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0634/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0534",
+      "saleStart": "2024-05-01",
+      "saleEnd": "2024-05-31",
+      "firstPeriodRate": "6.80",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0534/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0434",
+      "saleStart": "2024-04-01",
+      "saleEnd": "2024-04-30",
+      "firstPeriodRate": "6.80",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0434/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0334",
+      "saleStart": "2024-03-01",
+      "saleEnd": "2024-03-31",
+      "firstPeriodRate": "6.80",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0334/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0134",
+      "saleStart": "2024-01-01",
+      "saleEnd": "2024-01-31",
+      "firstPeriodRate": "6.90",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0134/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1233",
+      "saleStart": "2023-12-01",
+      "saleEnd": "2023-12-31",
+      "firstPeriodRate": "7.00",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1233/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1133",
+      "saleStart": "2023-11-01",
+      "saleEnd": "2023-11-30",
+      "firstPeriodRate": "7.00",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1133/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1033",
+      "saleStart": "2023-10-01",
+      "saleEnd": "2023-10-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1033/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0933",
+      "saleStart": "2023-09-01",
+      "saleEnd": "2023-09-30",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0933/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0833",
+      "saleStart": "2023-08-01",
+      "saleEnd": "2023-08-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0833/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0733",
+      "saleStart": "2023-07-01",
+      "saleEnd": "2023-07-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0733/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0633",
+      "saleStart": "2023-06-01",
+      "saleEnd": "2023-06-30",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0633/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0533",
+      "saleStart": "2023-05-01",
+      "saleEnd": "2023-05-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0533/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0433",
+      "saleStart": "2023-04-01",
+      "saleEnd": "2023-04-30",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0433/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0333",
+      "saleStart": "2023-03-01",
+      "saleEnd": "2023-03-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0333/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0233",
+      "saleStart": "2023-02-01",
+      "saleEnd": "2023-02-28",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0233/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0133",
+      "saleStart": "2023-01-01",
+      "saleEnd": "2023-01-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0133/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1232",
+      "saleStart": "2022-12-01",
+      "saleEnd": "2022-12-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1232/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1132",
+      "saleStart": "2022-11-01",
+      "saleEnd": "2022-11-30",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1132/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1032",
+      "saleStart": "2022-10-01",
+      "saleEnd": "2022-10-31",
+      "firstPeriodRate": "7.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1032/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0832",
+      "saleStart": "2022-08-01",
+      "saleEnd": "2022-08-31",
+      "firstPeriodRate": "6.75",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0832/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0732",
+      "saleStart": "2022-07-01",
+      "saleEnd": "2022-07-31",
+      "firstPeriodRate": "6.25",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0732/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0632",
+      "saleStart": "2022-06-01",
+      "saleEnd": "2022-06-30",
+      "firstPeriodRate": "5.75",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0632/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0532",
+      "saleStart": "2022-05-01",
+      "saleEnd": "2022-05-31",
+      "firstPeriodRate": "3.70",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0532/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0432",
+      "saleStart": "2022-04-01",
+      "saleEnd": "2022-04-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0432/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0332",
+      "saleStart": "2022-03-01",
+      "saleEnd": "2022-03-31",
+      "firstPeriodRate": "2.20",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0332/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0232",
+      "saleStart": "2022-02-01",
+      "saleEnd": "2022-02-28",
+      "firstPeriodRate": "2.20",
+      "margin": "1.25",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0232/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0132",
+      "saleStart": "2022-01-01",
+      "saleEnd": "2022-01-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0132/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1231",
+      "saleStart": "2021-12-01",
+      "saleEnd": "2021-12-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1231/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1131",
+      "saleStart": "2021-11-01",
+      "saleEnd": "2021-11-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1131/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1031",
+      "saleStart": "2021-10-01",
+      "saleEnd": "2021-10-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1031/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0931",
+      "saleStart": "2021-09-01",
+      "saleEnd": "2021-09-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0931/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0831",
+      "saleStart": "2021-08-01",
+      "saleEnd": "2021-08-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0831/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0731",
+      "saleStart": "2021-07-01",
+      "saleEnd": "2021-07-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0731/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0631",
+      "saleStart": "2021-06-01",
+      "saleEnd": "2021-06-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0631/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0531",
+      "saleStart": "2021-05-01",
+      "saleEnd": "2021-05-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0531/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0431",
+      "saleStart": "2021-04-01",
+      "saleEnd": "2021-04-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0431/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0331",
+      "saleStart": "2021-03-01",
+      "saleEnd": "2021-03-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0331/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0231",
+      "saleStart": "2021-02-01",
+      "saleEnd": "2021-02-28",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0231/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0131",
+      "saleStart": "2021-01-01",
+      "saleEnd": "2021-01-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0131/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1230",
+      "saleStart": "2020-12-01",
+      "saleEnd": "2020-12-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1230/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1130",
+      "saleStart": "2020-11-01",
+      "saleEnd": "2020-11-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1130/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1030",
+      "saleStart": "2020-10-01",
+      "saleEnd": "2020-10-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1030/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0930",
+      "saleStart": "2020-09-01",
+      "saleEnd": "2020-09-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0930/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0830",
+      "saleStart": "2020-08-01",
+      "saleEnd": "2020-08-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0830/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0730",
+      "saleStart": "2020-07-01",
+      "saleEnd": "2020-07-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0730/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0630",
+      "saleStart": "2020-06-01",
+      "saleEnd": "2020-06-30",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0630/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0530",
+      "saleStart": "2020-05-01",
+      "saleEnd": "2020-05-31",
+      "firstPeriodRate": "1.70",
+      "margin": "1.00",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0530/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0430",
+      "saleStart": "2020-04-01",
+      "saleEnd": "2020-04-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0430/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0330",
+      "saleStart": "2020-03-01",
+      "saleEnd": "2020-03-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0330/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0130",
+      "saleStart": "2020-01-01",
+      "saleEnd": "2020-01-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0130/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1229",
+      "saleStart": "2019-12-01",
+      "saleEnd": "2019-12-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1229/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1129",
+      "saleStart": "2019-11-01",
+      "saleEnd": "2019-11-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1129/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1029",
+      "saleStart": "2019-10-01",
+      "saleEnd": "2019-10-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1029/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0929",
+      "saleStart": "2019-09-01",
+      "saleEnd": "2019-09-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0929/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0729",
+      "saleStart": "2019-07-01",
+      "saleEnd": "2019-07-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0729/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0629",
+      "saleStart": "2019-06-01",
+      "saleEnd": "2019-06-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0629/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0529",
+      "saleStart": "2019-05-01",
+      "saleEnd": "2019-05-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0529/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0429",
+      "saleStart": "2019-04-01",
+      "saleEnd": "2019-04-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0429/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0329",
+      "saleStart": "2019-03-01",
+      "saleEnd": "2019-03-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0329/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0229",
+      "saleStart": "2019-02-01",
+      "saleEnd": "2019-02-28",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0229/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0129",
+      "saleStart": "2019-01-01",
+      "saleEnd": "2019-01-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0129/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0928",
+      "saleStart": "2018-09-01",
+      "saleEnd": "2018-09-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0928/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0828",
+      "saleStart": "2018-08-01",
+      "saleEnd": "2018-08-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0828/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0728",
+      "saleStart": "2018-07-01",
+      "saleEnd": "2018-07-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0728/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0628",
+      "saleStart": "2018-06-01",
+      "saleEnd": "2018-06-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0628/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0528",
+      "saleStart": "2018-05-01",
+      "saleEnd": "2018-05-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0528/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0428",
+      "saleStart": "2018-04-01",
+      "saleEnd": "2018-04-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0428/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0328",
+      "saleStart": "2018-03-01",
+      "saleEnd": "2018-03-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0328/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0228",
+      "saleStart": "2018-02-01",
+      "saleEnd": "2018-02-28",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0228/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0128",
+      "saleStart": "2018-01-01",
+      "saleEnd": "2018-01-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0128/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1227",
+      "saleStart": "2017-12-01",
+      "saleEnd": "2017-12-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1227/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1127",
+      "saleStart": "2017-11-01",
+      "saleEnd": "2017-11-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1127/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO1027",
+      "saleStart": "2017-10-01",
+      "saleEnd": "2017-10-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo1027/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0927",
+      "saleStart": "2017-09-01",
+      "saleEnd": "2017-09-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0927/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0827",
+      "saleStart": "2017-08-01",
+      "saleEnd": "2017-08-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0827/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0727",
+      "saleStart": "2017-07-01",
+      "saleEnd": "2017-07-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0727/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0627",
+      "saleStart": "2017-06-01",
+      "saleEnd": "2017-06-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0627/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0527",
+      "saleStart": "2017-05-01",
+      "saleEnd": "2017-05-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0527/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0427",
+      "saleStart": "2017-04-01",
+      "saleEnd": "2017-04-30",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0427/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0327",
+      "saleStart": "2017-03-01",
+      "saleEnd": "2017-03-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0327/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0227",
+      "saleStart": "2017-02-01",
+      "saleEnd": "2017-02-28",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0227/",
+      "verifiedAt": "2026-11-02"
+    },
+    {
+      "code": "EDO0127",
+      "saleStart": "2017-01-01",
+      "saleEnd": "2017-01-31",
+      "firstPeriodRate": "2.70",
+      "margin": "1.50",
+      "sourceUrl": "https://www.obligacjeskarbowe.pl/oferta-obligacji/obligacje-10-letnie-edo/edo0127/",
+      "verifiedAt": "2026-11-02"
+    }
+  ]
+}

@@ -31,6 +31,18 @@ services:
 
 ## Reverse proxy i probe'y
 
+WebUI działa na tym samym porcie: dokument pod `/`, pliki statyczne pod `/ui/*`,
+a obliczenia pod `/v1/*`. Reverse proxy powinno przekazywać te ścieżki bez zmiany prefiksu
+na jednej domenie. Aplikacja jest przeznaczona do serwowania z korzenia domeny, nie z podkatalogu.
+Nie wymaga dodatkowego kontenera ani CORS. Katalog emisji jest częścią obrazu;
+jego aktualizacja wymaga przebudowania i wdrożenia nowego obrazu.
+
+Przy lokalnym uruchomieniu błąd TLS `PKIX path building failed` podczas połączenia z GUS
+oznacza problem z łańcuchem zaufania używanego JDK. Sprawdź i zaktualizuj magazyn CA danej
+instalacji Javy; można też wskazać osobny zaufany magazyn przez `javax.net.ssl.trustStore`.
+Nie wyłączaj weryfikacji certyfikatów. Pierwszy okres EDO nie odpytuje GUS, dlatego jego
+poprawna wycena nie potwierdza działania TLS do zewnętrznego dostawcy.
+
 | Ścieżka | Znaczenie | Sukces | Uwagi |
 |---|---|---|---|
 | `/healthz` | liveness procesu | `200 text/plain`, `ok` | nie odpytuje zależności |
