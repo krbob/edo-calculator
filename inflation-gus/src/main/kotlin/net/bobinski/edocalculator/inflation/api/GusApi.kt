@@ -131,7 +131,7 @@ internal class GusApiImpl(
     private suspend fun fetchVariableDataPoint(
         attribute: GusAttribute, year: Int, periodId: Int
     ): GusIndicatorPoint? {
-        var page = 1
+        var page = 0
         while (true) {
             val response = executeRequest {
                 try {
@@ -181,7 +181,7 @@ internal class GusApiImpl(
     private fun buildVariableEndpoint(year: Int, periodId: Int, page: Int): Url = URLBuilder(BASE_URL).apply {
         encodedPath = "/api/1.1.0/variable/variable-data-section"
         parameters.append("id-zmienna", CPI_VARIABLE_ID.toString())
-        parameters.append("id-przekroj", COICOP_2018_SECTION_ID.toString())
+        parameters.append("id-przekroj", COICOP_2018_AGGREGATES_SECTION_ID.toString())
         parameters.append("id-rok", year.toString())
         parameters.append("id-okres", periodId.toString())
         parameters.append("page-size", VARIABLE_PAGE_SIZE.toString())
@@ -249,7 +249,9 @@ internal class GusApiImpl(
         private const val GRACE_PERIOD_MONTH = 1
         internal const val FIRST_COICOP_2018_YEAR = 2026
         private const val CPI_VARIABLE_ID = 305
-        private const val COICOP_2018_SECTION_ID = 1698
+        // The special aggregates section contains the same all-items / all-households CPI
+        // as section 1698, without downloading thousands of individual product groups.
+        private const val COICOP_2018_AGGREGATES_SECTION_ID = 1722
         private const val COICOP_2018_TOTAL_POSITION = 14916914
         private const val HOUSEHOLD_TOTAL_POSITION = 6902025
         private const val VARIABLE_PAGE_SIZE = 5000

@@ -80,7 +80,16 @@ w jednej serii oraz przez żądania oczekujące na ten sam wpis. Po minucie nast
 odczyt ponownie próbuje odświeżenia. Anulowanie żądania nadal przerywa pracę,
 a brak wpisu lub wymaganego miesiąca nadal kończy się błędem.
 
-Od danych za 2026 rok integracja GUS korzysta z nowego endpointu zmiennych. Dla roku uruchamia odczyty miesięcy, które są ograniczone wspólnym limitem 5 żądań na sekundę i 5 równoległych wywołań. Duże odpowiedzi GUS mogą chwilowo rozszerzyć heap JVM i podnieść RSS kontenera; sam wysoki poziom pamięci po takim żądaniu nie dowodzi wycieku.
+Od danych za 2026 rok integracja GUS korzysta z endpointu zmiennych: zmienna `305`,
+przekrój `1722` (specjalne agregaty COICOP 2018). Wybiera pozycję towarów i usług
+ogółem `14916914` oraz gospodarstw domowych ogółem `6902025`, z miarą `2` (m/m)
+lub `5` (r/r). Jest to ten sam wskaźnik ogółem co w szczegółowym przekroju `1698`,
+ale odpowiedź jest znacznie mniejsza: we wrześniu 2026 ok. 100 KB na miesiąc,
+zamiast wielu stron po ok. 2,3 MB. Stronicowanie zaczyna się od `page=0`.
+Metadane przekrojów są dostępne w [API GUS](https://api-sdp.stat.gov.pl/api/1.1.0/variable/variable-meta?id-zmiennej=305&lang=pl).
+Dla roku uruchamiane są odczyty miesięcy, ograniczone wspólnym limitem 5 żądań
+na sekundę i 5 równoległych wywołań. Odpowiedzi nadal przechodzą walidację
+kompletności okresów; brak danych nie jest zastępowany zerową inflacją.
 
 ## Timeouty i retry
 
