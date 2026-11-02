@@ -22,6 +22,24 @@ x-global-error-responses:
   "404": "#/components/responses/RouteNotFound"
   "405": "#/components/responses/MethodNotAllowed"
 paths:
+  /v1/edo/series:
+    get:
+      tags: [EDO]
+      operationId: getEdoSeriesCatalog
+      summary: List verified EDO emission terms
+      description: |
+        Returns the bundled catalog used by the WebUI. No live requests to GUS or
+        emission pages are made. Series codes refer to the maturity month and year;
+        saleStart identifies the emission month. Rates are exact percentage strings.
+        Consumers should save selected terms with their instrument rather than
+        retroactively changing existing holdings when the catalog is refreshed.
+      responses:
+        "200":
+          description: Verified emission terms bundled with this version of the service.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EdoSeriesCatalog"
   /v1/edo/value:
     x-legacy-alias: /edo/value
     get:
@@ -551,6 +569,39 @@ components:
           schema:
             $ref: "#/components/schemas/MethodNotAllowedError"
   schemas:
+    EdoSeriesCatalog:
+      type: object
+      additionalProperties: false
+      required: [updatedAt, series]
+      properties:
+        updatedAt:
+          $ref: "#/components/schemas/Date"
+        series:
+          type: array
+          items:
+            $ref: "#/components/schemas/EdoSeries"
+    EdoSeries:
+      type: object
+      additionalProperties: false
+      required: [code, saleStart, saleEnd, firstPeriodRate, margin, sourceUrl, verifiedAt]
+      properties:
+        code:
+          type: string
+          pattern: "^EDO[0-9]{4}$"
+          examples: ["EDO1135"]
+        saleStart:
+          $ref: "#/components/schemas/Date"
+        saleEnd:
+          $ref: "#/components/schemas/Date"
+        firstPeriodRate:
+          $ref: "#/components/schemas/RateParameter"
+        margin:
+          $ref: "#/components/schemas/RateParameter"
+        sourceUrl:
+          type: string
+          format: uri
+        verifiedAt:
+          $ref: "#/components/schemas/Date"
     DecimalParameter:
       type: string
       description: |

@@ -26,6 +26,7 @@ fun Route.fallbackErrorRoute() {
 }
 
 internal val REGISTERED_GET_PATHS = setOf(
+    "/v1/edo/series",
     "/healthz",
     "/readyz",
     METRICS_PATH,
