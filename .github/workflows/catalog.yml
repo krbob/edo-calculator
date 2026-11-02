@@ -21,6 +21,7 @@ jobs:
       contents: write
       pull-requests: write
       actions: write
+      checks: read # Required by gh run watch while waiting for CI.
     steps:
       - name: Checkout main
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

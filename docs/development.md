@@ -142,7 +142,7 @@ i czeka na publikację obrazu. Jawne uruchomienia są potrzebne, bo push i merge
 przez `GITHUB_TOKEN` nie uruchamiają workflow typu `push`.
 
 Automatyzacja używa wyłącznie `GITHUB_TOKEN`; wymaga uprawnień `contents: write`,
-`pull-requests: write`, `actions: write` oraz włączenia w ustawieniach repozytorium
+`pull-requests: write`, `actions: write`, `checks: read` oraz włączenia w ustawieniach repozytorium
 **Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**.
 Ochrona `main` i wymagany `ci-required` nadal obowiązują. Po błędzie parsowania, CI,
 merge lub publikacji cały workflow jest nieudany; szczegóły powiadomień opisuje
