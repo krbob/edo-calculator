@@ -135,6 +135,29 @@ Nieznane trasy są agregowane do ograniczonej etykiety, a niestandardowe metody 
 
 Bezpieczny wejściowy `X-Request-ID` jest zachowywany; brakujący albo niepoprawny identyfikator jest zastępowany UUID i trafia do MDC logów jako `requestId`.
 
+## Alerty katalogu emisji
+
+Workflow **Refresh EDO catalog** codziennie sprawdza rzeczywiste strony emisji.
+Błąd wymaganej strony oznacza nieudany run i pozostawienie całego poprzedniego katalogu.
+Log wskazuje serię, adres źródła i powód błędu. Katalog w działającym obrazie pozostaje
+dostępny; nie jest zastępowany pustymi danymi. Nowy obraz powstaje po zmianie danych
+i udanym CI, a nie po każdym sprawdzeniu.
+
+Na koncie właściciela harmonogramu w [ustawieniach powiadomień GitHub](https://github.com/settings/notifications)
+należy włączyć **System → Actions → Email → Failed workflows only**.
+Powiadomienia harmonogramu GitHub kieruje do użytkownika, który go utworzył, ostatnio
+zmienił jego cron albo ponownie włączył workflow. Autor i osoba scalająca konfigurację
+powinni odpowiadać oczekiwanemu odbiorcy. Szczegóły opisuje
+[dokumentacja GitHub](https://docs.github.com/en/actions/concepts/workflows-and-actions/notifications-for-workflow-runs).
+Samo obserwowanie repozytorium nie zastępuje ustawienia powiadomień Actions.
+
+Po alercie sprawdź pierwszy nieudany krok. Dla błędu parsera popraw selektory i dodaj
+przykład HTML do testów; dla awarii sieci ponów **Refresh EDO catalog** przez **Run workflow**.
+Jeśli PR został już scalony, a publikacja obrazu nie powiodła się, ponów nieudane zadanie
+publikacji w **CI Pipeline** albo uruchom ten workflow ręcznie na `main`.
+Udany run bez zmiany katalogu nie publikuje ponownie obrazu. Wynik ostatniej kontroli
+jest widoczny w Actions; daty w snapshotcie nie są codziennym sygnałem działania automatu.
+
 ## Pamięć JVM
 
 Repozytorium nie narzuca runtime `-Xmx` ani limitu pamięci kontenera. `org.gradle.jvmargs` dotyczy wyłącznie procesu budowania. JVM może zachować rozszerzony heap po dużej odpowiedzi GUS, mimo że ilość żywych danych po GC jest dużo mniejsza.
