@@ -43,6 +43,20 @@ curl --get 'http://localhost:8080/v1/edo/value/at' \
 
 Zweryfikowana odpowiedź tego przykładu jest częścią kontraktu OpenAPI i testów. Zapytania obejmujące kolejne okresy zależą od dostępności danych GUS i mogą zwrócić retryowalny błąd `503`.
 
+### Apple container na Macu
+
+Na Macu z Apple Silicon możesz uruchomić obraz ARM64 bezpośrednio z GHCR. Poniższy digest wskazuje
+sprawdzony obraz. Dla nowszej wersji skopiuj digest indeksu z jej publikacji w GHCR.
+
+```bash
+container system start
+container run -d --rm --name edo-test -p 127.0.0.1:18081:8080 \
+  ghcr.io/krbob/edo-calculator@sha256:466e75fe1c4a0f29db778b42b9204024c4044602a2480c60b69476be53c309fb
+curl --fail --retry 20 --retry-all-errors --retry-delay 1 http://127.0.0.1:18081/readyz
+```
+
+Gdy aplikacja odpowie `ready`, API jest dostępne na porcie 18081. Po zakończeniu użyj `container stop edo-test`.
+
 ## Uruchomienie lokalne bez Dockera
 
 Wymagany jest JDK 21. Projekt korzysta z wrappera Gradle, więc osobna instalacja Gradle nie jest potrzebna.
